@@ -7,6 +7,10 @@ library(texreg)
 
 dat <- read_excel('data/ASSISTment_merge_2021_04_12_N=1,587_ver.02.xlsx')
 
+dat$student_number <- gsub(".0","",dat$student_number,fixed=TRUE)
+
+dat <- dat[order(dat$student_number),]
+
 ### are students unique? what are their IDs?
 ## nrow(dat)
 ## sum(is.na(dat$student_number))
@@ -28,9 +32,35 @@ xtabs(~initial_teacher+condition_updated,data=dat,addNA=TRUE)
 xtabs(~initial_SectionNumber+condition_updated,data=dat,addNA=TRUE)
 xtabs(~movement+condition_updated,data=dat,addNA=TRUE)%>%addmargins()
 
+n_distinct(dat$initial_teacher_class)
+
+xtabs(~initial_teacher_class+condition_updated,data=dat)
+
+xtabs(~initial_teacher_class+condition_updated,data=dat[!is.na(dat$mid.total_math_score),])
+
+dat%>%
+    mutate(itc=as.factor(initial_teacher_class))%>%
+    filter(!is.na(mid.total_math_score))%>%
+    group_by(itc,.drop=FALSE)%>%
+    summarize(n=n(),bothDrop=n()==0,oneDrop=!bothDrop&(sum(condition_updated=='Instant')==0|sum(condition_updated=='Delay')==0))%>%
+    ungroup()%>%
+    summarize(sum(bothDrop),sum(oneDrop),sum(n[oneDrop]))
+
+dat%>%
+    mutate(itc=as.factor(initial_teacher_class))%>%
+    filter(!is.na(mid.total_math_score),!is.na(pre.total_math_score))%>%
+    group_by(itc,.drop=FALSE)%>%
+    summarize(n=n(),bothDrop=n()==0,oneDrop=!bothDrop&(sum(condition_updated=='Instant')==0|sum(condition_updated=='Delay')==0))%>%
+    ungroup()%>%
+    summarize(sum(bothDrop),sum(oneDrop),sum(n[oneDrop]))
+
+
 ## are section numbers nested w/i teachers?
 dat%>%group_by(initial_SectionNumber)%>%summarize(nt=n_distinct(initial_teacher))%>%xtabs(~nt,data=.)
 ## no!
+
+dat%>%group_by(initial_teacher_class)%>%summarize(nt=n_distinct(initial_teacher))%>%xtabs(~nt,data=.)
+dat%>%group_by(initial_teacher_class)%>%summarize(nt=n_distinct(initial_SectionNumber))%>%xtabs(~nt,data=.)
 
 ## are teachers nested w/i section numbers?
 dat%>%group_by(initial_teacher)%>%summarize(nt=n_distinct(initial_SectionNumber))%>%xtabs(~nt,data=.)
