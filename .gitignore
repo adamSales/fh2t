@@ -1,0 +1,8 @@
+*.csv
+*#
+*~
+data/*
+code/explore.r
+pilotPaper.pdf
+Logins*
+*.xlsx

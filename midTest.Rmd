@@ -1,0 +1,149 @@
+---
+title: "Mid-Test Effects"
+output: 
+    bookdown::pdf_document2: default
+---
+
+```{r prelim, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,error=FALSE,cache=FALSE)
+
+library(tidyverse)
+library(readxl)
+library(mosaic)
+library(lme4)
+library(RItools)
+library(texreg)
+library(knitr)
+library(kableExtra)
+library(estimatr)
+```
+
+```{r readData}
+dat <- read_excel('data/ASSISTment_merge_2021_04_12_N=1,587.xlsx')
+dat$condition <- dat$condition_updated
+dat$midMis <- is.na(dat$mid.total_math_score)
+dat$preMis <- is.na(dat$pre.total_math_score)
+
+dat$race <- fct_lump_min(dat$student_raceEthnicityFed,200)%>%
+    fct_recode(`Hispanic/Latino`="1",Asian="3",White="6")
+```
+
+
+# Introduction
+
+This document estimates the effect of immediate versus delayed feedback on the mid-test (total math score) in the FH2T RCT.
+It is based on the `r nrow(dat)` subjects initially randomized between the two conditions, `r sum(dat$condition=='Instant')` randomized to the Instant condition, and `r sum(dat$condition=='Delay')` randomized to the delayed feedback condition.
+Randomization was blocked within the `r n_distinct(dat$initial_SectionNumber)` classrooms.
+
+The following section discusses attrition--students who did not take the mid-assessment.
+
+The next section estimates treatment effects.
+
+# Attrition
+
+When randomized subjects do not have outcome information in an RCT, effect estimates may be biased.
+Randomization creates treatment groups that, in expectation, are identical in measured and unmeasured characteristics, referred to as "covariate balance."
+However, attrition is not controlled by the researcher, nor is it random; in particular, if different types of subjects attrit in different treatment groups, the remaining subjects will not necessarily be comparable across groups.
+That said, if the overall level of attrition is low, or if the level
+of attrition is similar between the two treatment groups, and if important covariates remain balanced
+between treatment groups after excluding attritors, the bias might be
+negligible.
+
+The What Works Clearinghouse publishes [standards for attrition bias][1]
+based on the level of overall attrition as well as differential
+attrition--the difference in attrition levels between treatment
+groups. 
+
+## Attrition Rates
+
+The overall attrition for the mid-test was `r round(mean(dat$midMis)*100)`%--`r sum(dat$midMis)` students out of `r nrow(dat)` did not complete the mid-test. 
+
+```{r attritionTable1,results='asis'}
+tally(midMis~condition,data=dat,format="percent")%>%
+    kbl(booktabs=TRUE,caption="Attrition by treatment group.")
+```
+
+Table \@ref(tab:attritionTable1) gives attrition by treatment
+group. 
+The differential attrition was `r round((mean(dat$midMis[dat$condition_updated=='Instant'])-mean(dat$midMis[dat$condition_updated!='Instant']))*100,2)`%.
+Taken together, the (high) overall attrition with the (low) differential attrition means that this study meets the conservative WWC standards. 
+
+An important subgroup is composed of the `r sum(!dat$preMis)`=`r round((1-mean(dat$preMis))*100)`% of students who have pre-test scores. 
+Among this subgroup, attrition is much lower: ``r round(mean(dat$midMis[!dat$preMis])*100)`%. 
+The differential attrition is also acceptable: 
+`r with(dat[!dat$preMis,],round((mean(midMis[condition_updated=='Instant'])-mean(midMis[condition_updated!='Instant']))*100,2))`%.
+
+## Attrition and Covariates
+
+### Who Attritted?
+
+```{r whoAttrit,fig.width=6.5,fig.height=4,fig.cap="Standardized differences of covariate means between students who took the mid-test and those who didn't"}
+balMid <- xBalance(!midMis~ScaleScore+pre.total_math_score+EIP+ESOL+IEP+FEMALE+GIFTED+student_hispanicEthnicity+race,data=dat,
+                   report='all',strata=list(classroom=~initial_SectionNumber))
+plot(balMid,ggplot=TRUE)+theme(legend.position='none')+annotate("text",x=c(-.1,.1),y=c(18,18),label=c('Attritted','Took\ntest'))+xlim(-.2,.41)+
+    annotate("segment", x = -.15, xend = -.2, y = 10, yend = 10, colour = "red", size=1, arrow=arrow())
+
+```
+
+Who attritted? Figure \@ref(fig:whoAttrit) shows standardized differences of covariates between students who attritted and those who took the mid-test. 
+Students who took the test had higher pretest and 5th-grade scale scores, were more likely to be gifted, and more likely to be Asian that students who attritted. 
+Students who attritted were much less likely to have taken the pre-test. 
+
+### Covariate Balance among Test-Takers
+
+```{r balAttrit,fig.width=6.5,fig.height=4,fig.cap="Standardized differences of covariate means between Instant and Delayed-feedback students among non-attritors"}
+
+balAtt <- xBalance(I(condition=="Instant")~ScaleScore+pre.total_math_score+EIP+ESOL+IEP+FEMALE+GIFTED+student_hispanicEthnicity+race,
+                   data=dat[!dat$preMis&!dat$midMis,],
+                   report='all',strata=list(classroom=~initial_SectionNumber))
+
+plot(balAtt,ggplot=TRUE)+theme(legend.position='none')+annotate("text",x=c(-.05,.05),y=c(18,18),label=c('Delayed','Instant'))
+```
+
+Are instant- and delayed-feedback non-attritors comparable? 
+Figure \@ref(fig:balAttrit) compares the two treatment groups among those who took the mid-test. 
+A p-value testing overall balance was $p=$`r round(balAtt$overall[1,'p.value'],3)`, meaning that the groups were more balanced than `r round(balAtt$overall[1,'p.value']*100)`% of randomized experiments.
+
+The only notable difference was that delayed feedback students who took the mid-test tend to be more likely to be ESOL than those in the instant-feedback condition.
+
+These results suggest that confounding bias due to attrition is unlikely to be a major concern.
+Nevertheless, we adjust for pre-treatment covariates in one of the models below.
+
+## Treatment Effects
+
+```{r boxplot,fig.width=4,fig.height=4,fig.cap='Boxplots of Mid-test scores for the two treatment conditions, with jittered scores'}
+gf_boxplot(mid.total_math_score~condition,data=dat,outlier.shape=NA)+geom_jitter()+labs(y='Mid. Total Math Score',x=NULL)+
+    scale_y_continuous(breaks=seq(0,10,2),minor_breaks=0:10)
+```
+
+Figure \@ref(fig:boxplot) gives boxplots of the total scores for the two treatment conditions, with individual scores plotted as jittered points. 
+The median score for Instant-feedback students is one point higher than the median for delayed-feedback students, but there is wide variation in both groups.
+
+```{r byScore,fig.width=6,fig.height=3,fig.cap='The percent of each treatment group achieving each score on the mid-test'}
+dat%>%group_by(condition)%>%mutate(nt=sum(!is.na(mid.total_math_score)))%>%group_by(condition_updated,mid.total_math_score)%>%summarize(percent=n()/nt)%>%ggplot(aes(mid.total_math_score,percent,color=condition_updated,group=condition_updated))+geom_point()+geom_line()+scale_x_continuous(breaks=0:10)+scale_y_continuous(labels=scales::percent,limits=c(0,.15))
+```
+
+Figure \@ref(fig:byScore) shows the percent of students in each treatment group who achieved each possible score on the mid-test. 
+A slightly higher percentage of delayed-feedback students scored 3, 4, or 5, and a slightly higher percentage of instant-feedback students scored 6 or 9.
+
+
+Table \@ref(tab:ols) give the results of OLS models estimating the effect of assignment to the instant- versus delayed-feedback condition on mid-tests.
+Model 1 is just a comparison of the mean test scores.
+Models 2-4 also include fixed-effects for classroom (the randomization blocks). 
+These estimate a weighted-average treatment effect, where the weights are chosen to maximize precision.
+Models 3-4 adjust for covariates, and include only students with pretest scores. 
+All standard errors are heteroskedasticity-consistent, estimated using the `estimatr` package in `R`.
+
+```{r models,results='asis'}
+dat$pretest <- scale(dat$pre.total_math_score)
+mod1 <- lm_robust(mid.total_math_score~condition,data=dat)
+mod2 <- lm_robust(mid.total_math_score~condition,data=dat,fixed_effects=~initial_SectionNumber)
+mod4 <- lm_robust(mid.total_math_score~condition+pretest,data=dat,fixed_effects=~initial_SectionNumber)
+mod6 <- lm_robust(mid.total_math_score~condition+pretest+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+race,data=dat,fixed_effects=~initial_SectionNumber)
+
+texreg(list(mod1,mod2,mod4,mod6),caption="OLS models estimating the effect of assignment to the instant feedback condition versus the delayed feedback condition. All models except 11 include fixed-effects for classroom; models 3 \\& 4 only include students with pretest scores. Confidence intervals are in brackets under coefficient estimates.",label='tab:ols')
+```
+
+All of the models estimated a positive effect for instant- versus delayed-feedback, but none of them estimated significant effects--all models agree that the instant versus delayed feedback affects average scores by at most half of a point.
+
+[1]:<https://ies.ed.gov/ncee/wwc/Document/243>
