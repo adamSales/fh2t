@@ -5,7 +5,7 @@ library(lme4)
 library(RItools)
 library(texreg)
 
-dat <- read_excel('data/ASSISTment_merge_2021_04_12_N=1,587.xlsx')
+dat <- read_excel('data/ASSISTment_merge_2021_04_12_N=1,587_ver.02.xlsx')
 
 ### are students unique? what are their IDs?
 ## nrow(dat)
@@ -73,16 +73,13 @@ mean(dat$midMis[dat$condition_updated=='Instant'])-mean(dat$midMis[dat$condition
 ### treatment effect estimates for mid test
 library(estimatr)
 
-dat$raceLump <- fct_lump_min(dat$student_raceEthnicityFed,200)
 
 mod1 <- lm_robust(mid.total_math_score~condition_updated,data=dat)
 mod2 <- lm_robust(mid.total_math_score~condition_updated,data=dat,fixed_effects=~initial_SectionNumber)
-mod3 <- lm_robust(mid.total_math_score~condition_updated,data=dat,fixed_effects=~initial_teacher)
 mod4 <- lm_robust(mid.total_math_score~condition_updated+pre.total_math_score,data=dat,fixed_effects=~initial_SectionNumber)
-mod5 <- lm_robust(mid.total_math_score~condition_updated+pre.total_math_score+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+raceLump,data=dat)
-mod6 <- lm_robust(mid.total_math_score~condition_updated+pre.total_math_score+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+raceLump,data=dat,fixed_effects=~initial_SectionNumber)
+mod6 <- lm_robust(mid.total_math_score~condition_updated+pre.total_math_score+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+race,data=dat,fixed_effects=~initial_SectionNumber)
 
-screenreg(list(mod1,mod2,mod3,mod4,mod5,mod6))
+
 
 
 
@@ -101,7 +98,7 @@ LOOP <- loop.estimator::loop(loopDat$Y,loopDat$Tr,as.matrix(loopDat[,-c(1:2)]))
 
 plot(table(dat$mid.total_math_score))
 
-gf_boxplot(mid.total_math_score~condition_updated,data=dat,outlier.shape=NA)+geom_jitter()
+
 
 ggplot(dat,aes(mid.total_math_score))+geom_histogram(bins=10)+facet_wrap(~condition_updated,ncol=1)
 
