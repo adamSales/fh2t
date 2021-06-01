@@ -152,6 +152,15 @@ Figure \@ref(fig:byScore) shows the percent of students in each treatment group 
 A slightly higher percentage of delayed-feedback students scored 3, 4, or 5, and a slightly higher percentage of instant-feedback students scored 6 or 9.
 
 
+```{r prePostScatter,fig.width=6.4,fig.height=4,fig.cap='Scatterplot of pre- and mid-test scores, with jitter to avoid overplotting and separate OLS fits by treatment group.'}
+gf_jitter(mid.total_math_score~pre.total_math_score,color=~condition,data=dat,size=.5)+geom_smooth(method='lm')+
+    scale_x_continuous('Pretest',breaks=seq(2,10,2),minor_breaks=seq(1,9,2))+
+    scale_y_continuous('Midtest',breaks=seq(2,10,2),minor_breaks=seq(1,9,2))
+```
+    
+Figure \@ref(fig:prePostScatter) gives a scatterplot of pre-test vs post-test scores with separate OLS fits in each treatment group. The best-fit lines are almost identical, but not quite--ignoring statistical error, it appears that students with very high pre-test scores did better on the mid-test if they were in the Instant condition, while students with very low pre-test scores did better on the mid-test if they were in the Delay condition. 
+We can test this with an OLS model below.
+	
 Table \@ref(tab:ols) give the results of OLS models estimating the effect of assignment to the instant- versus delayed-feedback condition on mid-tests.
 Model 1 is just a comparison of the mean test scores.
 Models 2-4 also include fixed-effects for classroom (the randomization blocks). 
@@ -170,14 +179,25 @@ All standard errors are heteroskedasticity-consistent, estimated using the `esti
 
 dat$pretest <- scale(dat$pre.total_math_score)
 dat$scaleScore <- scale(dat$ScaleScore)
+dat$inst <- as.numeric(dat$condition=='Instant')
+dat$pretestNeg <- dat$pretest-1
+dat$pretestPos <- dat$pretest+1
+
 mod1 <- lm_robust(mid.total_math_score~condition,data=dat)
 mod2 <- lm_robust(mid.total_math_score~condition,data=dat,fixed_effects=~initial_teacher_class)
 mod4 <- lm_robust(mid.total_math_score~condition+pretest,data=dat,fixed_effects=~initial_teacher_class)
 mod6 <- lm_robust(mid.total_math_score~condition+pretest+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+race,data=dat,fixed_effects=~initial_teacher_class)
+mod7 <- lm_robust(mid.total_math_score~condition*pretest,data=dat,fixed_effects=~initial_teacher_class)
+mod7neg<- lm_robust(mid.total_math_score~condition*pretestNeg,data=dat,fixed_effects=~initial_teacher_class)
+mod7pos<- lm_robust(mid.total_math_score~condition*pretestPos,data=dat,fixed_effects=~initial_teacher_class)
 
-texreg(list(mod1,mod2,mod4,mod6),caption="OLS models estimating the effect of assignment to the instant feedback condition versus the delayed feedback condition. All models except 11 include fixed-effects for classroom; models 3 \\& 4 only include students with pretest scores. Confidence intervals are in brackets under coefficient estimates.",label='tab:ols')
+texreg(list(mod1,mod2,mod4,mod6,mod7),caption="OLS models estimating the effect of assignment to the instant feedback condition versus the delayed feedback condition. All models except 11 include fixed-effects for classroom; models 3 \\& 4 only include students with pretest scores. Confidence intervals are in brackets under coefficient estimates.",label='tab:ols')
 ```
 
 All of the models estimated a positive effect for instant- versus delayed-feedback, but none of them estimated significant effects--all models agree that the instant versus delayed feedback affects average scores by at most half of a point.
+
+Model 7 estimated a marginally-significant (p=`r round(mod7$p.value['conditionInstant:pretest'],3)`) positive interaction between the effect of being assigned to the Instant condition and pretest scores--i.e. that the effect becomes larger (more positive) as pretest scores increase.
+The model predicts an effect of `r round(mod7neg$coefficients['conditionInstant'],3)`, (CI: [`r round(mod7neg$conf.low[1],3)`,`r round(mod7neg$conf.high[1],3)`]) for subjects with pretest scores 1 standard deviation above the mean and 
+`r round(mod7pos$coefficients['conditionInstant'],3)`, (CI: [`r round(mod7pos$conf.low[1],3)`,`r round(mod7pos$conf.high[1],3)`]) for subjects with pretest scores 1 standard deviation below the mean.
 
 [1]:<https://ies.ed.gov/ncee/wwc/Document/243>
