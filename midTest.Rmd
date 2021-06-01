@@ -196,7 +196,8 @@ texreg(list(mod1,mod2,mod4,mod6,mod7),caption="OLS models estimating the effect 
 
 All of the models estimated a positive effect for instant- versus delayed-feedback, but none of them estimated significant effects--all models agree that the instant versus delayed feedback affects average scores by at most half of a point.
 
-Model 7 estimated a marginally-significant (p=`r round(mod7$p.value['conditionInstant:pretest'],3)`) positive interaction between the effect of being assigned to the Instant condition and pretest scores--i.e. that the effect becomes larger (more positive) as pretest scores increase.
+Model 7 estimated a positive interaction between the effect of being assigned to the Instant condition and pretest scores--i.e. that the effect becomes larger (more positive) as pretest scores increase--however, the data are also consistent with a 0 or slightly negative interaction 
+(p=`r round(mod7$p.value['conditionInstant:pretest'],3)`).
 The model predicts an effect of `r round(mod7neg$coefficients['conditionInstant'],3)`, (CI: [`r round(mod7neg$conf.low[1],3)`,`r round(mod7neg$conf.high[1],3)`]) for subjects with pretest scores 1 standard deviation above the mean and 
 `r round(mod7pos$coefficients['conditionInstant'],3)`, (CI: [`r round(mod7pos$conf.low[1],3)`,`r round(mod7pos$conf.high[1],3)`]) for subjects with pretest scores 1 standard deviation below the mean.
 
