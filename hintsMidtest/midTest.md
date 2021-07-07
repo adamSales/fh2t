@@ -1,7 +1,7 @@
 ---
 title: "Mid-Test Effects"
-output: 
-    bookdown::pdf_document2: default
+output:
+  bookdown::html_document2: default
 ---
 
 
@@ -10,6 +10,85 @@ output:
 ```
 ## [1] "table1.docx"
 ```
+
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;">   </th>
+   <th style="text-align:left;">    </th>
+   <th style="text-align:right;"> N </th>
+   <th style="text-align:right;"> % </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> Gender </td>
+   <td style="text-align:left;"> Female </td>
+   <td style="text-align:right;"> 372 </td>
+   <td style="text-align:right;"> 43.6 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:right;"> 382 </td>
+   <td style="text-align:right;"> 44.8 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> Unknown </td>
+   <td style="text-align:right;"> 99 </td>
+   <td style="text-align:right;"> 11.6 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Race/Ethnicity </td>
+   <td style="text-align:left;"> Hispanic/Latino </td>
+   <td style="text-align:right;"> 110 </td>
+   <td style="text-align:right;"> 12.9 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> American Indian/Alaska Native </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 0.7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> Asian </td>
+   <td style="text-align:right;"> 229 </td>
+   <td style="text-align:right;"> 26.8 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> Black/African American </td>
+   <td style="text-align:right;"> 32 </td>
+   <td style="text-align:right;"> 3.8 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> Native Hawaiian or Other Pacific islander </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 0.1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> White </td>
+   <td style="text-align:right;"> 443 </td>
+   <td style="text-align:right;"> 51.9 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> Two or more races </td>
+   <td style="text-align:right;"> 29 </td>
+   <td style="text-align:right;"> 3.4 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> Unknown </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 0.4 </td>
+  </tr>
+</tbody>
+</table>
 
 
 
@@ -99,28 +178,75 @@ Students who attritted were much less likely to have taken the pre-test.
 
 ![Standardized differences of covariate means between Instant and Delayed-feedback students among non-attritors](figure/balAttrit-1.png)
 
-
-\begin{tabular}{l|r|r|r|l}
-\hline
-Covariate & Delayed & Instant & std.diff & Zscore\\
-\hline
-ESOL & 0.079 & 0.043 & -0.149 & -2.36*\\
-\hline
-pre.total\_math\_score & 4.766 & 5.008 & 0.091 & 2.08*\\
-\hline
-raceHispanic/Latino & 0.139 & 0.112 & -0.078 & -1.2\\
-\hline
-raceOther & 0.091 & 0.072 & -0.068 & -0.94\\
-\hline
-raceWhite & 0.502 & 0.534 & 0.064 & 1.09\\
-\hline
-raceNA & 0.002 & 0.006 & 0.059 & 0.82\\
-\hline
-ScaleScore & 0.133 & 0.080 & -0.053 & -1.08\\
-\hline
-IEP & 0.085 & 0.071 & -0.052 & -0.78\\
-\hline
-\end{tabular}
+<table>
+ <thead>
+  <tr>
+   <th style="text-align:left;"> Covariate </th>
+   <th style="text-align:right;"> Delayed </th>
+   <th style="text-align:right;"> Instant </th>
+   <th style="text-align:right;"> std.diff </th>
+   <th style="text-align:left;"> Zscore </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> ESOL </td>
+   <td style="text-align:right;"> 0.079 </td>
+   <td style="text-align:right;"> 0.043 </td>
+   <td style="text-align:right;"> -0.149 </td>
+   <td style="text-align:left;"> -2.36* </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> pre.total_math_score </td>
+   <td style="text-align:right;"> 4.766 </td>
+   <td style="text-align:right;"> 5.008 </td>
+   <td style="text-align:right;"> 0.091 </td>
+   <td style="text-align:left;"> 2.08* </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> raceHispanic/Latino </td>
+   <td style="text-align:right;"> 0.139 </td>
+   <td style="text-align:right;"> 0.112 </td>
+   <td style="text-align:right;"> -0.078 </td>
+   <td style="text-align:left;"> -1.2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> raceOther </td>
+   <td style="text-align:right;"> 0.091 </td>
+   <td style="text-align:right;"> 0.072 </td>
+   <td style="text-align:right;"> -0.068 </td>
+   <td style="text-align:left;"> -0.94 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> raceWhite </td>
+   <td style="text-align:right;"> 0.502 </td>
+   <td style="text-align:right;"> 0.534 </td>
+   <td style="text-align:right;"> 0.064 </td>
+   <td style="text-align:left;"> 1.09 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> raceNA </td>
+   <td style="text-align:right;"> 0.002 </td>
+   <td style="text-align:right;"> 0.006 </td>
+   <td style="text-align:right;"> 0.059 </td>
+   <td style="text-align:left;"> 0.82 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> ScaleScore </td>
+   <td style="text-align:right;"> 0.133 </td>
+   <td style="text-align:right;"> 0.080 </td>
+   <td style="text-align:right;"> -0.053 </td>
+   <td style="text-align:left;"> -1.08 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> IEP </td>
+   <td style="text-align:right;"> 0.085 </td>
+   <td style="text-align:right;"> 0.071 </td>
+   <td style="text-align:right;"> -0.052 </td>
+   <td style="text-align:left;"> -0.78 </td>
+  </tr>
+</tbody>
+</table>
 
 Are instant- and delayed-feedback non-attritors comparable? 
 Figure \@ref(fig:balAttrit) compares the two treatment groups among those who took the mid-test. 
@@ -182,55 +308,298 @@ All standard errors are heteroskedasticity-consistent, estimated using the `esti
 
 
 
-
-\begin{table}
-\begin{center}
-\begin{tabular}{l c c c c c}
-\hline
- & Model 1 & Model 2 & Model 3 & Model 4 & Model 5 \\
-\hline
-conditionInstant         & $0.24$           & $0.19$           & $0.19$           & $0.19$           & $0.19$           \\
-                         & $ [-0.02; 0.50]$ & $ [-0.06; 0.44]$ & $ [-0.06; 0.44]$ & $ [-0.05; 0.44]$ & $ [-0.06; 0.44]$ \\
-pretest                  &                  & $0.31^{*}$       & $0.30^{*}$       & $0.28^{*}$       & $0.27^{*}$       \\
-                         &                  & $ [ 0.22; 0.40]$ & $ [ 0.21; 0.39]$ & $ [ 0.19; 0.38]$ & $ [ 0.17; 0.37]$ \\
-ScaleScore               &                  & $0.47^{*}$       & $0.42^{*}$       & $0.47^{*}$       & $0.42^{*}$       \\
-                         &                  & $ [ 0.27; 0.67]$ & $ [ 0.21; 0.63]$ & $ [ 0.27; 0.67]$ & $ [ 0.21; 0.63]$ \\
-ESOL1                    &                  & $0.35$           & $0.45$           & $0.33$           & $0.43$           \\
-                         &                  & $ [-0.32; 1.02]$ & $ [-0.25; 1.15]$ & $ [-0.34; 0.99]$ & $ [-0.27; 1.12]$ \\
-IEP1                     &                  & $-0.18$          & $-0.13$          & $-0.19$          & $-0.14$          \\
-                         &                  & $ [-0.58; 0.23]$ & $ [-0.59; 0.33]$ & $ [-0.59; 0.22]$ & $ [-0.61; 0.32]$ \\
-raceHispanic/Latino      &                  & $-0.23$          & $-0.22$          & $-0.23$          & $-0.21$          \\
-                         &                  & $ [-0.73; 0.26]$ & $ [-0.71; 0.28]$ & $ [-0.72; 0.27]$ & $ [-0.71; 0.28]$ \\
-raceAsian                &                  & $0.52^{*}$       & $0.48$           & $0.52^{*}$       & $0.48$           \\
-                         &                  & $ [ 0.01; 1.03]$ & $ [-0.04; 0.99]$ & $ [ 0.02; 1.03]$ & $ [-0.03; 0.99]$ \\
-raceOther                &                  & $0.09$           & $0.08$           & $0.09$           & $0.09$           \\
-                         &                  & $ [-0.42; 0.60]$ & $ [-0.43; 0.59]$ & $ [-0.42; 0.60]$ & $ [-0.42; 0.59]$ \\
-EIP1                     &                  &                  & $-0.26$          &                  & $-0.27$          \\
-                         &                  &                  & $ [-0.89; 0.37]$ &                  & $ [-0.89; 0.36]$ \\
-FEMALE1                  &                  &                  & $0.17$           &                  & $0.18$           \\
-                         &                  &                  & $ [-0.10; 0.45]$ &                  & $ [-0.10; 0.46]$ \\
-GIFTED1                  &                  &                  & $0.37$           &                  & $0.36$           \\
-                         &                  &                  & $ [-0.02; 0.76]$ &                  & $ [-0.03; 0.75]$ \\
-ScaleScoreMISSTRUE       &                  &                  & $0.11$           &                  & $0.11$           \\
-                         &                  &                  & $ [-1.94; 2.16]$ &                  & $ [-1.91; 2.12]$ \\
-ESOLMISSTRUE             &                  &                  & $-0.09$          &                  & $-0.09$          \\
-                         &                  &                  & $ [-2.21; 2.03]$ &                  & $ [-2.17; 1.99]$ \\
-raceMISSTRUE             &                  &                  & $0.35$           &                  & $0.37$           \\
-                         &                  &                  & $ [-0.70; 1.39]$ &                  & $ [-0.68; 1.41]$ \\
-conditionInstant:pretest &                  &                  &                  & $0.06$           & $0.06$           \\
-                         &                  &                  &                  & $ [-0.03; 0.15]$ & $ [-0.03; 0.15]$ \\
-\hline
-R$^2$                    & $0.55$           & $0.61$           & $0.61$           & $0.61$           & $0.61$           \\
-Adj. R$^2$               & $0.47$           & $0.54$           & $0.54$           & $0.54$           & $0.54$           \\
-Num. obs.                & $853$            & $853$            & $853$            & $853$            & $853$            \\
-RMSE                     & $1.89$           & $1.76$           & $1.76$           & $1.76$           & $1.76$           \\
-\hline
-\multicolumn{6}{l}{\scriptsize{$^*$ Null hypothesis value outside the confidence interval.}}
-\end{tabular}
-\caption{OLS models estimating the effect of assignment to the instant feedback condition versus the delayed feedback condition. Confidence intervals are in brackets under coefficient estimates.}
-\label{tab:ols}
-\end{center}
-\end{table}
+<table class="texreg" style="margin: 10px auto;border-collapse: collapse;border-spacing: 0px;caption-side: bottom;color: #000000;border-top: 2px solid #000000;">
+<caption>OLS models estimating the effect of assignment to the instant feedback condition versus the delayed feedback condition. Confidence intervals are in brackets under coefficient estimates.</caption>
+<thead>
+<tr>
+<th style="padding-left: 5px;padding-right: 5px;">&nbsp;</th>
+<th style="padding-left: 5px;padding-right: 5px;">Model 1</th>
+<th style="padding-left: 5px;padding-right: 5px;">Model 2</th>
+<th style="padding-left: 5px;padding-right: 5px;">Model 3</th>
+<th style="padding-left: 5px;padding-right: 5px;">Model 4</th>
+<th style="padding-left: 5px;padding-right: 5px;">Model 5</th>
+</tr>
+</thead>
+<tbody>
+<tr style="border-top: 1px solid #000000;">
+<td style="padding-left: 5px;padding-right: 5px;">conditionInstant</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.24</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.19</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.19</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.19</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.19</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.02; 0.50]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.06; 0.44]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.06; 0.44]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.05; 0.44]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.06; 0.44]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">pretest</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.31<sup>*</sup></td>
+<td style="padding-left: 5px;padding-right: 5px;">0.30<sup>*</sup></td>
+<td style="padding-left: 5px;padding-right: 5px;">0.28<sup>*</sup></td>
+<td style="padding-left: 5px;padding-right: 5px;">0.27<sup>*</sup></td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[ 0.22; 0.40]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[ 0.21; 0.39]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[ 0.19; 0.38]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[ 0.17; 0.37]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">ScaleScore</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.47<sup>*</sup></td>
+<td style="padding-left: 5px;padding-right: 5px;">0.42<sup>*</sup></td>
+<td style="padding-left: 5px;padding-right: 5px;">0.47<sup>*</sup></td>
+<td style="padding-left: 5px;padding-right: 5px;">0.42<sup>*</sup></td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[ 0.27; 0.67]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[ 0.21; 0.63]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[ 0.27; 0.67]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[ 0.21; 0.63]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">ESOL1</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.35</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.45</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.33</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.43</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.32; 1.02]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.25; 1.15]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.34; 0.99]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.27; 1.12]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">IEP1</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.18</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.13</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.19</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.14</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.58; 0.23]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.59; 0.33]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.59; 0.22]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.61; 0.32]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">raceHispanic/Latino</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.23</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.22</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.23</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.21</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.73; 0.26]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.71; 0.28]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.72; 0.27]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.71; 0.28]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">raceAsian</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.52<sup>*</sup></td>
+<td style="padding-left: 5px;padding-right: 5px;">0.48</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.52<sup>*</sup></td>
+<td style="padding-left: 5px;padding-right: 5px;">0.48</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[ 0.01; 1.03]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.04; 0.99]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[ 0.02; 1.03]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.03; 0.99]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">raceOther</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.09</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.08</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.09</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.09</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.42; 0.60]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.43; 0.59]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.42; 0.60]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.42; 0.59]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">EIP1</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.26</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.27</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.89; 0.37]</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.89; 0.36]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">FEMALE1</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.17</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.18</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.10; 0.45]</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.10; 0.46]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">GIFTED1</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.37</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.36</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.02; 0.76]</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.03; 0.75]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">ScaleScoreMISSTRUE</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.11</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.11</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-1.94; 2.16]</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-1.91; 2.12]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">ESOLMISSTRUE</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.09</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">-0.09</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-2.21; 2.03]</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-2.17; 1.99]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">raceMISSTRUE</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.35</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.37</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.70; 1.39]</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.68; 1.41]</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">conditionInstant:pretest</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.06</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.06</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.03; 0.15]</td>
+<td style="padding-left: 5px;padding-right: 5px;">[-0.03; 0.15]</td>
+</tr>
+<tr style="border-top: 1px solid #000000;">
+<td style="padding-left: 5px;padding-right: 5px;">R<sup>2</sup></td>
+<td style="padding-left: 5px;padding-right: 5px;">0.55</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.61</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.61</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.61</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.61</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">Adj. R<sup>2</sup></td>
+<td style="padding-left: 5px;padding-right: 5px;">0.47</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.54</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.54</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.54</td>
+<td style="padding-left: 5px;padding-right: 5px;">0.54</td>
+</tr>
+<tr>
+<td style="padding-left: 5px;padding-right: 5px;">Num. obs.</td>
+<td style="padding-left: 5px;padding-right: 5px;">853</td>
+<td style="padding-left: 5px;padding-right: 5px;">853</td>
+<td style="padding-left: 5px;padding-right: 5px;">853</td>
+<td style="padding-left: 5px;padding-right: 5px;">853</td>
+<td style="padding-left: 5px;padding-right: 5px;">853</td>
+</tr>
+<tr style="border-bottom: 2px solid #000000;">
+<td style="padding-left: 5px;padding-right: 5px;">RMSE</td>
+<td style="padding-left: 5px;padding-right: 5px;">1.89</td>
+<td style="padding-left: 5px;padding-right: 5px;">1.76</td>
+<td style="padding-left: 5px;padding-right: 5px;">1.76</td>
+<td style="padding-left: 5px;padding-right: 5px;">1.76</td>
+<td style="padding-left: 5px;padding-right: 5px;">1.76</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td style="font-size: 0.8em;" colspan="6"><sup>*</sup> Null hypothesis value outside the confidence interval.</td>
+</tr>
+</tfoot>
+</table>
 
 
 ```
