@@ -1,0 +1,102 @@
+---
+title: "Attrition Analysis: Overall vs Differential Attrition"
+output: word_document
+---
+
+```{r init, include=FALSE}
+library(knitr)
+opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,error=FALSE,fig.width=6.5,fig.height=7)
+```
+
+```{r}
+library(tidyverse)
+library(RItools)
+library(mosaic)
+source('../code/functions.r')
+
+dat <- read_csv('../data/Assessment_merged_2021_06_16_state_assessment_N=4311.csv')
+
+### attrition variables
+dat <- dat%>%
+    mutate(
+        hasPretest=is.finite(pre_MA_total_score),
+        hasMidtest=is.finite(mid_MA_total_score),
+        hasPosttest=is.finite(post_MA_total_score),
+        hasDelayed=is.finite(delayed.total_math_score)
+        )
+### what's the difference between hasDelayed & complete_delayed_posttest?
+
+dat$Z <- dat$rdm_condition ## differentiates between * and *-Resource (what does this mean?)
+```
+
+```{r}
+
+dat$initial_school_id[is.na(dat$initial_school_id)] <- 'SNA'
+
+#drop schools where (almost) everyone dropped out (S03 & S07)
+dat <- dat%>%
+    group_by(initial_school_id)%>%
+    mutate(postPer=mean(hasPosttest))%>%
+    filter(postPer>0.01)%>%
+    ungroup()%>%
+    select(-postPer)
+
+dat0 <- filter(dat,hasPretest)
+
+```
+
+```{r}
+## treatment levels
+trtLevs <- unique(na.omit(dat$Z))
+trtLevs <- trtLevs[!endsWith(trtLevs,'Resource')]
+nlevs <- length(trtLevs)
+ndiff <- nlevs*(nlevs-1)/2
+
+```
+
+```{r}
+#wwc <- readJPEG('wwc2.jpg')
+wwc <- read.csv('wwc.csv')
+names(wwc)[1] <- 'Overall'
+```
+
+```{r}
+for(test in c('Midtest','Posttest','Delayed')){
+    for(inclPre in c(TRUE,FALSE)){
+        ddd <- if(inclPre) dat else dat0
+        
+        ov <- NULL
+
+        diff <- NULL
+        diffName <- NULL
+        for(i in 1:(nlevs-1))
+            for(j in (i+1):nlevs){
+                diffDat <- filter(ddd,Z%in% trtLevs[c(i,j)])
+                ov <- c(ov,1-mean(diffDat[[paste0('has',test)]])) 
+                diff <- c(diff,
+                          mean(subset(diffDat,Z==trtLevs[i])[[paste0('has',test)]])-
+                          mean(subset(diffDat,Z==trtLevs[j])[[paste0('has',test)]])
+                          )
+                diffName <- c(diffName,paste(trtLevs[c(i,j)],collapse=' vs. '))
+            }
+        
+                                        #plot(seq(0,65,length=10),seq(0,11,length=10),type='n',
+        with(wwc,
+             plot(Overall,Differential1,type='l',ylim=c(0,11),
+                  main=paste(test,ifelse(inclPre,'Including','Excluding'), 'Pretest No-Shows'),
+                  xlab="Overall Attrition", ylab="Differential Attrition"))
+#        rasterImage(wwc,0,0,65,11)
+        polygon(c(0,0,65,65),c(0,11,11,0),col='red')
+        polygon(c(0,wwc[[1]],65),c(0,wwc$Differential1,0),col='yellow')
+        polygon(c(0,wwc[[1]]),c(0,wwc$Differential0),col='green')
+
+        ov <- ov*100
+        diff <- abs(diff)*100
+
+        points(ov,diff,pch=16)
+        text(ov,diff,diffName,pos=2)
+    }
+}
+
+```
+

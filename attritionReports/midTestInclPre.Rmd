@@ -1,0 +1,144 @@
+---
+title: "Attrition Analysis: Mid-Test, Including Pretest No-Shows"
+output: word_document
+---
+
+```{r init, include=FALSE}
+library(knitr)
+opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,error=FALSE,fig.width=6.5,fig.height=7)
+```
+
+```{r}
+library(tidyverse)
+library(RItools)
+library(mosaic)
+source('../code/functions.r')
+
+dat <- read_csv('../data/Assessment_merged_2021_06_16_state_assessment_N=4311.csv')
+
+### attrition variables
+dat <- dat%>%
+    mutate(
+        hasPretest=is.finite(pre_MA_total_score),
+        hasMidtest=is.finite(mid_MA_total_score),
+        hasPosttest=is.finite(post_MA_total_score),
+        hasDelayed=is.finite(delayed.total_math_score)
+        )
+### what's the difference between hasDelayed & complete_delayed_posttest?
+
+dat$Z <- dat$rdm_condition ## differentiates between * and *-Resource (what does this mean?)
+```
+
+```{r}
+Scale <- function(x) (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE)
+
+dat <- dat%>%
+    mutate(
+        race=student_raceEthnicityFed%>%
+               factor()%>%
+               fct_lump_min(200)%>%
+               fct_recode(`Hispanic/Latino`="1",Asian="3",White="6",Black="4")%>%
+            fct_relevel('White'),
+        ScaleScore7 = Scale(Scale.Score_7th.grade),
+        ScaleScore5 = Scale(`ScaleScore_5th grade`),
+        pretest = pre.total_math_score-round(mean(pre.total_math_score,na.rm=TRUE))#Scale(pre.total_math_score),
+        )
+
+covNames <-
+    c('pretest','ScaleScore5','ScaleScore7','race','FEMALE','EIP','ESOL','IEP','GIFTED') ## more?
+```
+
+Attrition by school:
+```{r}
+## a couple schools basically just dropped out
+dat%>%
+    group_by(initial_school_id)%>%
+    summarize(n=n(),across(starts_with('has'),mean))%>%
+    kable(digits=3)
+```
+
+Drop schools with <0.01 posttest scores (S03 & S07)
+```{r}
+
+dat$initial_school_id[is.na(dat$initial_school_id)] <- 'SNA'
+
+## drop schools where (almost) everyone dropped out (S03 & S07)
+dat <- dat%>%
+    group_by(initial_school_id)%>%
+    mutate(postPer=mean(hasPosttest))%>%
+    filter(postPer>0.01)%>%
+    ungroup()%>%
+    select(-postPer)
+
+```
+
+Attrition rates by condition:
+```{r attritionRates}
+dat%>%
+    bind_rows(mutate(dat,Z='Overall'))%>%
+    mutate(Z=factor(Z,levels=c('Overall',unique(dat$Z))))%>%
+    group_by(Z)%>%
+    summarize(n_assigned=n(),across(starts_with('has'),mean))%>%
+    kable(digits=3)
+```
+
+Excluding students with missing pre-test:
+
+```{r }
+dat%>%
+    bind_rows(mutate(dat,Z='Overall'))%>%
+    filter(hasPretest)%>%
+    mutate(Z=factor(Z,levels=c('Overall',unique(dat$Z))))%>%
+    group_by(Z)%>%
+    summarize(n_assigned=n(),across(starts_with('has'),mean))%>%
+    kable(digits=3)
+```
+
+
+
+### Mid-test
+differential attrition:
+```{r}
+att <- dat%>%
+    group_by(Z)%>%
+    summarize(att=1-mean(hasMidtest))%>%
+    ungroup()
+diff <- outer(att$att,att$att,FUN='-')
+rownames(diff) <- colnames(diff) <- att$Z
+kable(diff,digits=2,caption='mid-test differential attrition, including pre-test no-shows')
+```
+
+
+Balance plot:
+```{r}
+dat%>%
+    filter(hasMidtest)%>%
+    mutate(race=substr(as.character(race),1,1))%>%
+    balPlot(covNames,trtVar='Z',data=.)
+```
+
+Balance tests:
+```{r}
+ddd <- dat%>%
+    filter(hasMidtest,!is.na(Z), !endsWith(Z,"Resource"))
+
+tests <- map_dfr(covNames,~balTestOne(ddd[[.]],ddd$Z,ddd$initial_teacher_class))
+tests <- tests[,sapply(tests,function(x) all(!is.na(x)))]
+tests$p.adj <- p.adjust(tests$p.value,method='fdr')
+tests$covariate <- covNames
+tests%>%
+    select(covariate,method,statistic,p.value,p.adj)%>%
+    kable()
+```
+xBalance version:
+```{r}
+covForm <- as.formula(paste('~',paste(covNames,collapse='+')))
+totForm <- update(covForm,Z~.)
+
+bals <- xbalMult(totForm,ddd,trtLevs=unique(ddd$Z)[!endsWith(unique(ddd$Z),'Resource')],strata=list(cls=~ddd$initial_teacher_class),na.rm=TRUE)
+plotXbals(bals)
+
+map_dfr(names(bals),~tibble(Comparison=.,Overall.p=bals[[.]]$overall[1,'p.value']))%>%
+    kable(digits=3)
+```
+
