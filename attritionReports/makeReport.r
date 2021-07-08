@@ -9,7 +9,7 @@ output: html_document
 
 ```{r init, include=FALSE}
 library(knitr)
-opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,error=FALSE,#fig.width=6.5,fig.height=7,
+opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,error=FALSE,fig.width=9,fig.height=9,
   cache=FALSE)
 ```
 
