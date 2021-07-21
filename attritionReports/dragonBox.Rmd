@@ -18,6 +18,7 @@ source("../code/functions.r")
 Scale <- function(x) (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE)
 
 dat <- read_csv("../data/Assessment_merged_2021_07_16_state_assessment_N=4321 - Sheet1.csv")
+teacherDrop <- read_csv("../data/IES_school_teacher_ID_list_opt_out - teacher (1).csv")
 
 ### attrition variables
 dat <- dat%>%
@@ -59,7 +60,7 @@ dat$initial_school_id[is.na(dat$initial_school_id)] <- "SNA"
 dat <- dat%>%
     group_by(initial_school_id)%>%
     mutate(postPer=mean(hasPosttest))%>%
-    filter(postPer>0.01)%>%
+    filter(postPer>0.01,!initial_teacher_id%in%teacherDrop$teacher_id)%>%
     ungroup()%>%
     select(-postPer)
 ```
@@ -80,12 +81,33 @@ dat%>%
 
 Non-Attrition rates by Virtual/In-Person status:
 ```{r attritionRatesByStatus}
-dat%>%
+att <- dat%>%
     bind_rows(mutate(dat,Z="Overall"))%>%    
     mutate(Z=factor(Z,levels=c("Overall",unique(dat$Z))),virtual=ifelse(virtual==1,'Virtual','In-Person'))%>%
-    group_by(Z,virtual)%>%
-    summarize(n_assigned=n(),across(starts_with("has"),mean))%>%
-    kable(digits=3)
+    group_by(virtual,Z)%>%
+    summarize(n_assigned=n(),across(starts_with("has"),mean))
+kable(att,digits=3)
+```
+
+```{r}
+att%>%filter(virtual=='Virtual')%>%select(-n_assigned)%>%
+    pivot_longer(starts_with('has'),names_to="test",values_to="tookTest")%>%
+    filter(!endsWith(as.character(Z),'Resource'))%>%
+    mutate(time=c(hasPretest=1,hasMidtest=2,hasPosttest=3,hasDelayed=4,hasStatetest=5)[test])%>%
+    ggplot(aes(time,tookTest,color=Z,group=Z))+geom_point()+geom_line()+ggtitle('Virtual Kids')+
+    scale_x_continuous("Test",1:5,labels=c('Pretest','Midtest','Posttest','Delayed','State Test'))
+
+att%>%filter(virtual=='Virtual',!endsWith(as.character(Z),'Resource'))%>%
+    select(-n_assigned)%>%
+    mutate(across(starts_with("has"),~.-.[Z=='Dragon']))%>%
+    filter(Z!='Dragon')%>%
+    pivot_longer(starts_with('has'),names_to="test",values_to="tookTest")%>%
+    mutate(time=c(hasPretest=1,hasMidtest=2,hasPosttest=3,hasDelayed=4,hasStatetest=5)[test])%>%
+    ggplot(aes(time,tookTest,color=Z,group=Z))+geom_point()+geom_line()+ggtitle('Virtual Kids')+
+    ylab("Differential Attrition vs DragonBox")+
+    scale_x_continuous("Test",1:5,labels=c('Pretest','Midtest','Posttest','Delayed','State Test'))+
+    scale_y_continuous(labels=scales::percent)
+
 ```
 
 
