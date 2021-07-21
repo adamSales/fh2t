@@ -1,0 +1,140 @@
+---
+title: "Attrition Analysis: Dragon Box"
+output: html_document
+---
+
+```{r init, include=FALSE}
+library(knitr)
+opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,error=FALSE,fig.width=9,fig.height=9,
+  cache=FALSE) 
+``` 
+
+```{r}
+library(tidyverse)
+library(RItools)
+library(mosaic)
+source("../code/functions.r") 
+
+Scale <- function(x) (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE)
+
+dat <- read_csv("../data/Assessment_merged_2021_07_16_state_assessment_N=4321 - Sheet1.csv")
+
+### attrition variables
+dat <- dat%>%
+    mutate(
+        ScaleScore7 = Scale(Scale.Score_7th.grade),
+        hasPretest=is.finite(pre_MA_total_score),
+        hasMidtest=is.finite(mid_MA_total_score),
+        hasPosttest=is.finite(post_MA_total_score),
+        hasDelayed=is.finite(delayed.total_math_score),
+        hasStatetest=is.finite(ScaleScore7),
+        Z =rdm_condition
+)%>%
+filter(!is.na(Z))
+```
+
+```{r}
+
+dat <- dat%>%
+    mutate(
+        race=student_raceEthnicityFed%>%
+               factor()%>%
+               fct_lump_min(200)%>%
+               fct_recode(`Hispanic/Latino`="1",Asian="3",White="6",Black="4")%>%
+            fct_relevel("White"),
+        ScaleScore5 = Scale(`ScaleScore_5th grade`),
+        pretest = pre.total_math_score-round(mean(pre.total_math_score,na.rm=TRUE))
+        )
+
+covNames <-
+    c("pretest","ScaleScore5","race","FEMALE","EIP","ESOL","IEP","GIFTED") ## more?
+```
+
+#Drop schools with <0.01 posttest scores (S03 & S07)
+```{r}
+
+dat$initial_school_id[is.na(dat$initial_school_id)] <- "SNA"
+
+## drop schools where (almost) everyone dropped out (S03 & S07)
+dat <- dat%>%
+    group_by(initial_school_id)%>%
+    mutate(postPer=mean(hasPosttest))%>%
+    filter(postPer>0.01)%>%
+    ungroup()%>%
+    select(-postPer)
+```
+
+```
+````
+Non-Attrition rates by condition:
+```{r}
+
+```{r attritionRates}
+dat%>%
+    bind_rows(mutate(dat,Z="Overall"))%>%
+    mutate(Z=factor(Z,levels=c("Overall",unique(dat$Z))))%>%
+    group_by(Z)%>%
+    summarize(n_assigned=n(),across(starts_with("has"),mean))%>%
+    kable(digits=3)
+```
+
+Non-Attrition rates by Virtual/In-Person status:
+```{r attritionRatesByStatus}
+dat%>%
+    bind_rows(mutate(dat,Z="Overall"))%>%    
+    mutate(Z=factor(Z,levels=c("Overall",unique(dat$Z))),virtual=ifelse(virtual==1,'Virtual','In-Person'))%>%
+    group_by(Z,virtual)%>%
+    summarize(n_assigned=n(),across(starts_with("has"),mean))%>%
+    kable(digits=3)
+```
+
+
+Overall and Differential Attrition vis a vis WWC Standards:
+```{r}
+## treatment levels 
+trtLevs <- unique(na.omit(dat$Z))
+trtLevs <- trtLevs[!endsWith(trtLevs,"Resource")]
+nlevs <- length(trtLevs)
+ndiff <- nlevs*(nlevs-1)/2
+
+### make Dragon first
+trtLevs <- c('Dragon',setdiff(trtLevs,'Dragon'))
+
+wwc <- read.csv("wwc.csv")
+names(wwc)[1] <- "Overall"
+
+
+for(test in c('Midtest','Posttest','Delayed','Statetest')){
+    for(virt in c(-1,0,1)){
+        ov <- NULL
+        diff <- NULL
+        diffName <- NULL
+        
+        for(i in 2:nlevs){
+            diffDat <- filter(dat,Z%in% trtLevs[c(i,1)])
+            if(virt>=0) diffDat <- filter(diffDat,virtual==virt)
+            ov <- c(ov,1-mean(diffDat[[paste0('has',test)]]))
+            diff <- c(diff,
+                      mean(subset(diffDat,Z==trtLevs[i])[[paste0('has',test)]])-
+                      mean(subset(diffDat,Z==trtLevs[1])[[paste0('has',test)]])
+                      )
+            diffName <- c(diffName,paste("vs.",trtLevs[i]))
+        }
+
+        with(wwc,
+             plot(Overall,Differential1,type="l",ylim=c(0,11),
+                  main=paste(test,c('Overall','In-Person','Virtual')[virt+2]),
+                  xlab="Overall Attrition", ylab="Differential Attrition"))
+        polygon(c(0,0,65,65),c(0,11,11,0),col="red")
+        polygon(c(0,wwc[[1]],65),c(0,wwc$Differential1,0),col="yellow")
+        polygon(c(0,wwc[[1]]),c(0,wwc$Differential0),col="green")
+
+        ov <- ov*100
+        diff <- abs(diff)*100
+
+        points(ov,diff,pch=16)
+        text(ov,diff,diffName,pos=2)
+    }
+}
+
+```
