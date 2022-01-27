@@ -1,0 +1,65 @@
+[[I cut this portion off of midTest.Rmd]]
+
+# Treatment Effect by Item
+
+Using `r nrow(smallDat)` observations where in each stratum there's at
+least one student in each treatment condition with both pre- and
+mid-test scores.
+
+```{itemData,include=FALSE}
+datLongPre <- smallDat%>%
+    select(student_number,starts_with("correct.01_"))%>%
+    pivot_longer(cols=-student_number,names_to='prob',values_to='pre',names_prefix='correct.01_')%>%
+    mutate(prob=substr(prob,1,2))
+
+datLongMid <- smallDat%>%
+    select(student_number,starts_with("correct.06_"))%>%
+    pivot_longer(cols=-student_number,names_to='prob',values_to='mid',names_prefix='correct.06_')%>%
+    mutate(prob=substr(prob,1,2))
+
+datLong <-
+    smallDat%>%
+    select(student_number,initial_teacher_class,condition,ScaleScore,EIP,ESOL,IEP,FEMALE,GIFTED,race,ScaleScoreMISS,ESOLMISS,raceMISS)%>%
+    right_join(datLongPre,by='student_number')%>%
+    full_join(datLongMid,by=c('student_number','prob'))
+```
+
+```{r gainByProb,fig.width=6.4,fig.height=4,fig.cap='Proportion getting each mid-test item correct minus the proportion getting the analogous pre-test item correct, for both treatment groups'}
+
+datLong%>%
+    group_by(prob,condition)%>%
+    summarize(gain=mean(mid)-mean(pre))%>%
+    ggplot(aes(condition,gain,fill=condition))+
+    geom_hline(yintercept=0)+
+    geom_col()+
+    facet_wrap(~prob)
+ggsave('gainByProb.jpg')
+```
+
+
+```{r byProbModels,include=FALSE,cache=TRUE}
+mod0 <- glmer(mid~condition+pre+(1|student_number/initial_teacher_class)+(1|prob),data=datLong,family=binomial)
+mod1 <- update(mod0,.~.+ScaleScore)
+mod2 <- update(mod1,.~.-(1|prob)+(pre|prob))
+an12 <- anova(mod1,mod2)
+mod3 <- update(mod1,.~.-(pre|prob)+(pre+condition|prob))
+an23 <- anova(mod1,mod2,mod3)
+```
+
+```{r getEffs, include=FALSE,cache=TRUE}
+re3 <- ranef(mod3,condVar=TRUE)
+effByProb <- fixef(mod3)['conditionInstant']+re3$prob$condition
+pv <- attr(re3$prob,'postVar')
+seByProb <- sqrt(summary(mod3)$coef['conditionInstant',2]^2+pv[[2]][3,3,])
+```
+
+```{r effByProbPlot,fig.width=6.4,fig.height=4,fig.cap='Effect of being assigned to "Instant" condition, by each problem, with approximate 95% confidence intervals.'}
+
+data.frame(item=rownames(re3$prob),effect=effByProb,seEff=seByProb)%>%
+    mutate(signif=ifelse(effect-2*seEff>0,'Positive',ifelse(effect+2*seEff<0,'Negative','Undetermined')))%>%
+    ggplot(aes(item, effect,ymin=effect-2*seEff,ymax=effect+2*seEff))+
+    geom_point()+
+    geom_errorbar(width=0)+geom_hline(yintercept=0)+
+    labs(x='Item',y='Treatment Effect (Logit Scale)',color='Year')
+ggsave('effectByProblem.jpg')
+```

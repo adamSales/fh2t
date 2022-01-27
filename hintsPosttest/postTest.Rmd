@@ -28,6 +28,7 @@ dat <- read_csv('../data/IES_assessment_final_2021_06_03_N=4284 - Sheet1.csv')%>
     filter(KEEP==1&condition%in%c('Delay','Instant'))%>%
     mutate(midMis=is.na(mid.total_math_score),
            preMis=is.na(pre.total_math_score),
+           postMis=is.na(post.total_math_score),
            race=student_raceEthnicityFed%>%
                factor()%>%
                fct_lump_min(200)%>%
@@ -53,7 +54,7 @@ dat <- read_csv('../data/IES_assessment_final_2021_06_03_N=4284 - Sheet1.csv')%>
 
 ### delete all observations from classrooms in which we don't have students in both treatment conditions with both pre and mid test scores -->
  smallDat <- dat%>% 
-     filter(!preMis,!midMis)%>%
+     filter(!preMis,!postMis)%>%
      group_by(initial_teacher_class)%>%
      mutate(nInst=sum(condition=='Instant'),nDel=sum(condition=='Delay'))%>%
      filter(nInst>0,nDel>0)%>%
@@ -61,7 +62,7 @@ dat <- read_csv('../data/IES_assessment_final_2021_06_03_N=4284 - Sheet1.csv')%>
 
 
 finalDat <- dat%>%
-    filter(!preMis,!midMis)%>%
+    filter(!preMis,!postMis)%>%
     mutate(initial_teacher_class=fct_explicit_na(initial_teacher_class))
     
 finalDat%>%select(Gender,`Race/Ethnicity`)%>%datasummary_skim(type="categorical",output="table1.docx")
@@ -72,11 +73,11 @@ finalDat%>%select(Gender,`Race/Ethnicity`)%>%datasummary_skim(type="categorical"
 
 # Introduction
 
-This document estimates the effect of immediate versus delayed feedback on the mid-test (total math score) in the FH2T RCT.
+This document estimates the effect of immediate versus delayed feedback on the post-test (total math score) in the FH2T RCT.
 It is based on the `r nrow(dat)` subjects initially randomized between the two conditions, `r sum(dat$condition=='Instant')` randomized to the Instant condition, and `r sum(dat$condition=='Delay')` randomized to the delayed feedback condition.
 Randomization was blocked within the `r n_distinct(dat$initial_teacher_class)` classrooms.
 
-The following section discusses attrition--students who did not take the mid-assessment.
+The following section discusses attrition--students who did not take the post-assessment.
 
 The next section estimates treatment effects.
 
@@ -100,7 +101,7 @@ groups.
 ```{r numAtt,results='hide'}
 numAtt1 <- dat%>%
     mutate(itc=as.factor(initial_teacher_class))%>%
-    filter(!is.na(mid.total_math_score))%>%
+    filter(!is.na(post.total_math_score))%>%
     group_by(itc,.drop=FALSE)%>%
     summarize(n=n(),bothDrop=n()==0,oneDrop=!bothDrop&(sum(condition=='Instant')==0|sum(condition=='Delay')==0))%>%
     ungroup()%>%
@@ -108,54 +109,54 @@ numAtt1 <- dat%>%
 
 numAtt2 <- dat%>%
     mutate(itc=as.factor(initial_teacher_class))%>%
-    filter(!is.na(mid.total_math_score),!is.na(pre.total_math_score))%>%
+    filter(!is.na(post.total_math_score),!is.na(pre.total_math_score))%>%
     group_by(itc,.drop=FALSE)%>%
     summarize(n=n(),bothDrop=n()==0,oneDrop=!bothDrop&(sum(condition=='Instant')==0|sum(condition=='Delay')==0))%>%
     ungroup()%>%
     summarize(both=sum(bothDrop),one=sum(oneDrop),stud=sum(n[oneDrop]))
 ```
 
-In practice, we will omit the `r prettyNum(sum(dat$midMis),big.mark=',')` students without mid-test scores (and in some analyses, also the additional `r sum(dat$preMis&!dat$midMis)` students without pre-test scores). 
-In `r numAtt1$both` classrooms, no students took the mid-test, and in `r numAtt2$both-numAtt1$both` additional classrooms, no student took both the pre- and the mid-test.
+In practice, we will omit the `r prettyNum(sum(dat$postMis),big.mark=',')` students without post-test scores (and in some analyses, also the additional `r sum(dat$preMis&!dat$postMis)` students without pre-test scores). 
+In `r numAtt1$both` classrooms, no students took the post-test, and in `r numAtt2$both-numAtt1$both` additional classrooms, no student took both the pre- and the post-test.
 In `r numAtt1$one` classrooms, there were no students with pre-test scores in one of the two treatment groups; these classrooms were dropped from all analyses other than Model 1, below. Dropping these entire classrooms enhances the validity of the analyses, but reduces the sample size by `r numAtt1$stud` students.
 
 ## Attrition Rates
 
-The overall attrition for the mid-test was `r round(mean(dat$midMis)*100)`%--`r sum(dat$midMis)` students out of `r nrow(dat)` did not complete the mid-test. 
+The overall attrition for the post-test was `r round(mean(dat$postMis)*100)`%--`r sum(dat$postMis)` students out of `r nrow(dat)` did not complete the post-test. 
 
 ```{r attritionTable1,results='asis'}
-dat%>%mutate(midMis=ifelse(midMis,'Attrit','Took Mid-Test'))%>%
-tally(midMis~condition,data=.,format="percent")%>%
+dat%>%mutate(postMis=ifelse(postMis,'Attrit','Took Post-Test'))%>%
+tally(postMis~condition,data=.,format="percent")%>%
     kbl(booktabs=TRUE,caption="Attrition by treatment group.",digits=1)
 ```
 
 Table \@ref(tab:attritionTable1) gives attrition by treatment
 group. 
-The differential attrition was `r round((mean(dat$midMis[dat$condition=='Instant'])-mean(dat$midMis[dat$condition!='Instant']))*100,2)`%.
+The differential attrition was `r round((mean(dat$postMis[dat$condition=='Instant'])-mean(dat$postMis[dat$condition!='Instant']))*100,2)`%.
 Taken together, the (high) overall attrition with the (low) differential attrition means that this study meets the conservative WWC standards. 
 
 An important subgroup is composed of the `r sum(!dat$preMis)`=`r round((1-mean(dat$preMis))*100)`% of students who have pre-test scores. 
-Among this subgroup, `r sum(!dat$preMis&!dat$midMis)` also took the
-mid-test, so attrition is much lower: `r round(mean(dat$midMis[!dat$preMis])*100)`%. 
+Among this subgroup, `r sum(!dat$preMis&!dat$postMis)` also took the
+post-test, so attrition is much lower: `r round(mean(dat$postMis[!dat$preMis])*100)`%. 
 The differential attrition is also acceptable: 
-`r with(dat[!dat$preMis,],round((mean(midMis[condition=='Instant'])-mean(midMis[condition!='Instant']))*100,2))`%.
+`r with(dat[!dat$preMis,],round((mean(postMis[condition=='Instant'])-mean(postMis[condition!='Instant']))*100,2))`%.
 
 ## Attrition and Covariates
 
 ### Who Attritted?
 
     
-```{r whoAttrit,fig.width=6.5,fig.height=4,fig.cap="Standardized differences of covariate means between students who took the mid-test and those who didn't"}
-balMid <- xBalance(!midMis~ScaleScore+pre.total_math_score+EIP+ESOL+IEP+FEMALE+GIFTED+student_hispanicEthnicity+race,data=dat,
+```{r whoAttrit,fig.width=6.5,fig.height=4,fig.cap="Standardized differences of covariate means between students who took the post-test and those who didn't"}
+balPost <- xBalance(!postMis~ScaleScore+pre.total_math_score+EIP+ESOL+IEP+FEMALE+GIFTED+student_hispanicEthnicity+race,data=dat,
                    report='all',strata=list(classroom=~initial_teacher_class))
-balMidSmall <- xBalance(!midMis~ScaleScore+pre.total_math_score+EIP+ESOL+IEP+FEMALE+GIFTED+student_hispanicEthnicity+race,data=filter(dat,!preMis),
+balPostSmall <- xBalance(!postMis~ScaleScore+pre.total_math_score+EIP+ESOL+IEP+FEMALE+GIFTED+student_hispanicEthnicity+race,data=filter(dat,!preMis),
                    report='all',strata=list(classroom=~initial_teacher_class))
-plot(balMid,ggplot=TRUE)+theme(legend.position='none')+annotate("text",x=c(-.1,.1),y=c(18,18),label=c('Attritted','Took\ntest'))+xlim(-.2,.41)+
+plot(balPost,ggplot=TRUE)+theme(legend.position='none')+annotate("text",x=c(-.1,.1),y=c(18,18),label=c('Attritted','Took\ntest'))+xlim(-.2,.41)+
     annotate("segment", x = -.15, xend = -.2, y = 10, yend = 10, colour = "red", size=1, arrow=arrow())
 
 ```
 
-Who attritted? Figure \@ref(fig:whoAttrit) shows standardized differences of covariates between students who attritted and those who took the mid-test. 
+Who attritted? Figure \@ref(fig:whoAttrit) shows standardized differences of covariates between students who attritted and those who took the post-test. 
 Students who took the test had higher pretest and 5th-grade scale scores, were more likely to be gifted, and more likely to be Asian that students who attritted. 
 Students who attritted were much less likely to have taken the pre-test. 
 
@@ -168,7 +169,7 @@ balAtt <- xBalance(I(condition=="Instant")~ScaleScore+pre.total_math_score+EIP+E
                    report='all',strata=list(classroom=~initial_teacher_class))
 
 balAtt0 <- xBalance(I(condition=="Instant")~ScaleScore+pre.total_math_score+EIP+ESOL+IEP+FEMALE+GIFTED+student_hispanicEthnicity+race,
-                   data=dat[!dat$midMis,],
+                   data=dat[!dat$postMis,],
                    report='all',strata=list(classroom=~initial_teacher_class))
 
 plot(balAtt,ggplot=TRUE)+theme(legend.position='none')+annotate("text",x=c(-.05,.05),y=c(18,18),label=c('Delayed','Instant'))
@@ -181,16 +182,15 @@ balAtt$results[,,1]%>%
     filter(abs(std.diff)>0.05)%>%
     arrange(-abs(std.diff))%>%
     mutate(z=paste0(round(z,2),ifelse(p<0.001,'***',ifelse(p<0.01,'**',ifelse(p<0.05,'*',ifelse(p<0.1,'.',''))))))%>%
-    transmute(Covariate,Delayed=`I(condition == "Instant")=0`,
-              Instant=`I(condition == "Instant")=0`,std.diff,Zscore=z)%>%
+    transmute(Covariate,"Delayed"="Control","Instant"="Treatment",std.diff,Zscore=z)%>%
     kable(digits=3)
 ```
 
 Are instant- and delayed-feedback non-attritors comparable? 
-Figure \@ref(fig:balAttrit) compares the two treatment groups among those who took the mid-test. 
+Figure \@ref(fig:balAttrit) compares the two treatment groups among those who took the post-test. 
 A p-value testing overall balance was $p=$`r round(balAtt$overall[1,'p.value'],3)`, meaning that the groups were more balanced than `r round(balAtt$overall[1,'p.value']*100)`% of randomized experiments.
 
-The only notable difference was that delayed feedback students who took the mid-test tend to be more likely to be ESOL than those in the instant-feedback condition.
+The only notable difference was that delayed feedback students who took the post-test tend to be more likely to be ESOL than those in the instant-feedback condition.
 
 These results suggest that confounding bias due to attrition is unlikely to be a major concern.
 Nevertheless, we adjust for pre-treatment covariates in one of the models below.
@@ -198,39 +198,37 @@ Nevertheless, we adjust for pre-treatment covariates in one of the models below.
 # Growth
 
 ```{r growth}
-t.test(smallDat$mid.total_math_score-smallDat$pre.total_math_score)
+t.test(smallDat$post.total_math_score-smallDat$pre.total_math_score)
 ```
 
 # Treatment Effects
 
-```{r boxplot,fig.width=4,fig.height=4,fig.cap='Boxplots of Mid-test scores for the two treatment conditions, with jittered scores'}
-gf_boxplot(mid.total_math_score~condition,data=finalDat,outlier.shape=NA)+geom_jitter()+labs(y='Mid. Total Math Score',x=NULL)+
+```{r boxplot,fig.width=4,fig.height=4,fig.cap='Boxplots of Post-test scores for the two treatment conditions, with jittered scores'}
+gf_boxplot(post.total_math_score~condition,data=finalDat,outlier.shape=NA)+geom_jitter()+labs(y='Post. Total Math Score',x=NULL)+
     scale_y_continuous(breaks=seq(0,10,2),minor_breaks=0:10)
 ```
 
 Figure \@ref(fig:boxplot) gives boxplots of the total scores for the two treatment conditions, with individual scores plotted as jittered points. 
 The median score for Instant-feedback students is one point higher than the median for delayed-feedback students, but there is wide variation in both groups.
 
-```{r byScore,fig.width=6,fig.height=3,fig.cap='The percent of each treatment group achieving each score on the mid-test'}
-finalDat%>%group_by(condition)%>%mutate(nt=sum(!is.na(mid.total_math_score)))%>%group_by(condition,mid.total_math_score)%>%summarize(percent=n()/nt)%>%ggplot(aes(mid.total_math_score,percent,color=condition,group=condition))+geom_point()+geom_line()+scale_x_continuous(breaks=0:10)+scale_y_continuous(labels=scales::percent,limits=c(0,.15))
+```{r byScore,fig.width=6,fig.height=3,fig.cap='The percent of each treatment group achieving each score on the post-test'}
+finalDat%>%group_by(condition)%>%mutate(nt=sum(!is.na(post.total_math_score)))%>%group_by(condition,post.total_math_score)%>%summarize(percent=n()/nt)%>%ggplot(aes(post.total_math_score,percent,color=condition,group=condition))+geom_point()+geom_line()+scale_x_continuous(breaks=0:10)+scale_y_continuous(labels=scales::percent,limits=c(0,.15))
 ```
 
-Figure \@ref(fig:byScore) shows the percent of students in each treatment group who achieved each possible score on the mid-test. 
+Figure \@ref(fig:byScore) shows the percent of students in each treatment group who achieved each possible score on the post-test. 
 A slightly higher percentage of delayed-feedback students scored 3, 4, or 5, and a slightly higher percentage of instant-feedback students scored 6 or 9.
 
 
-```{r prePostScatter,fig.width=4,fig.height=3,fig.cap='Scatterplot of pre- and mid-test scores, with jitter to avoid overplotting and separate OLS fits by treatment group.'}
-finalDat$Condition=ifelse(finalDat$condition=='Delay', 'Delayed','Immediate')
-gf_jitter(mid.total_math_score~pre.total_math_score,color=~Condition,data=finalDat,size=.5)+geom_smooth(method='lm')+
-    scale_x_continuous('Pre-Assessment',breaks=seq(2,10,2),minor_breaks=seq(1,9,2))+
-    scale_y_continuous('End-of-Semester Assessment',breaks=seq(2,10,2),minor_breaks=seq(1,9,2))+
-    theme(legend.position="top")
+```{r prePostScatter,fig.width=6.4,fig.height=4,fig.cap='Scatterplot of pre- and post-test scores, with jitter to avoid overplotting and separate OLS fits by treatment group.'}
+gf_jitter(post.total_math_score~pre.total_math_score,color=~condition,data=finalDat,size=.5)+geom_smooth(method='lm')+
+    scale_x_continuous('Pretest',breaks=seq(2,10,2),minor_breaks=seq(1,9,2))+
+    scale_y_continuous('Posttest',breaks=seq(2,10,2),minor_breaks=seq(1,9,2))
 ```
     
-Figure \@ref(fig:prePostScatter) gives a scatterplot of pre-test vs post-test scores with separate OLS fits in each treatment group. The best-fit lines are almost identical, but not quite--ignoring statistical error, it appears that students with very high pre-test scores did better on the mid-test if they were in the Instant condition, while students with very low pre-test scores did better on the mid-test if they were in the Delay condition. 
+Figure \@ref(fig:prePostScatter) gives a scatterplot of pre-test vs post-test scores with separate OLS fits in each treatment group. The best-fit lines are almost identical, but not quite--ignoring statistical error, it appears that students with very high pre-test scores did better on the post-test if they were in the Instant condition, while students with very low pre-test scores did better on the post-test if they were in the Delay condition. 
 We can test this with an OLS model below.
 	
-Table \@ref(tab:ols) give the results of OLS models estimating the effect of assignment to the instant- versus delayed-feedback condition on mid-tests.
+Table \@ref(tab:ols) give the results of OLS models estimating the effect of assignment to the instant- versus delayed-feedback condition on post-tests.
 Model 1 is just a comparison of the mean test scores.
 Models 2-4 also include fixed-effects for classroom (the randomization blocks). 
 These estimate a weighted-average treatment effect, where the weights are chosen to maximize precision.
@@ -242,8 +240,8 @@ All standard errors are heteroskedasticity-consistent, estimated using the `esti
 ## dat <- dat%>%
 ##     group_by(initial_teacher_class)%>%
 ##     mutate(
-##         itc1=ifelse(sum(!midMis&condition=='Instant')>0&sum(!midMis&condition!='Instant')>0,initial_teacher_class,"new"),
-##         itc2=ifelse(sum(!midMis&!preMis&condition=='Instant')>0&sum(!midMis&!preMis&condition!='Instant')>0,initial_teacher_class,"new")
+##         itc1=ifelse(sum(!postMis&condition=='Instant')>0&sum(!postMis&condition!='Instant')>0,initial_teacher_class,"new"),
+##         itc2=ifelse(sum(!postMis&!preMis&condition=='Instant')>0&sum(!postMis&!preMis&condition!='Instant')>0,initial_teacher_class,"new")
 ##     )%>%
 ##     ungroup()
 
@@ -269,16 +267,16 @@ for(nn in names(covs)){
 
 
 ```{r models,results='asis'}
-mod0 <- lm_robust(mid.total_math_score~condition,data=finalDat)
-mod1 <- lm_robust(mid.total_math_score~condition,data=finalDat,fixed_effects=~initial_teacher_class)
-mod2 <- lm_robust(mid.total_math_score~condition+pretest+ScaleScore+ESOL+IEP+race,data=finalDat,fixed_effects=~initial_teacher_class)
-mod3 <- lm_robust(mid.total_math_score~condition+pretest+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+race+ScaleScoreMISS+ESOLMISS+raceMISS,data=finalDat,fixed_effects=~initial_teacher_class)
-mod3lm <- lm(mid.total_math_score~condition+pretest+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+race+ScaleScoreMISS+ESOLMISS+raceMISS+initial_teacher_class,data=finalDat)
-mod4 <- lm_robust(mid.total_math_score~condition*pretest+ScaleScore+ESOL+IEP+race,data=finalDat,fixed_effects=~initial_teacher_class)
-mod5 <- lm_robust(mid.total_math_score~condition+pretest+condition:pretest+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+race+ScaleScoreMISS+ESOLMISS+raceMISS,data=finalDat,fixed_effects=~initial_teacher_class)
+mod0 <- lm_robust(post.total_math_score~condition,data=finalDat)
+mod1 <- lm_robust(post.total_math_score~condition,data=finalDat,fixed_effects=~initial_teacher_class)
+mod2 <- lm_robust(post.total_math_score~condition+pretest+ScaleScore+ESOL+IEP+race,data=finalDat,fixed_effects=~initial_teacher_class)
+mod3 <- lm_robust(post.total_math_score~condition+pretest+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+race+ScaleScoreMISS+ESOLMISS+raceMISS,data=finalDat,fixed_effects=~initial_teacher_class)
+mod3lm <- lm(post.total_math_score~condition+pretest+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+race+ScaleScoreMISS+ESOLMISS+raceMISS+initial_teacher_class,data=finalDat)
+mod4 <- lm_robust(post.total_math_score~condition*pretest+ScaleScore+ESOL+IEP+race,data=finalDat,fixed_effects=~initial_teacher_class)
+mod5 <- lm_robust(post.total_math_score~condition+pretest+condition:pretest+ScaleScore+EIP+ESOL+IEP+FEMALE+GIFTED+race+ScaleScoreMISS+ESOLMISS+raceMISS,data=finalDat,fixed_effects=~initial_teacher_class)
 mod4lm <- update(mod3lm,.~.+pretest:condition) 
-mod4neg<- lm_robust(mid.total_math_score~condition+pretestNeg+condition:pretestNeg+ScaleScore+ESOL+IEP+race,data=finalDat,fixed_effects=~initial_teacher_class)
-mod4pos<- lm_robust(mid.total_math_score~condition+pretestPos+condition:pretestPos+ScaleScore+ESOL+IEP+race,data=finalDat,fixed_effects=~initial_teacher_class)
+mod4neg<- lm_robust(post.total_math_score~condition+pretestNeg+condition:pretestNeg+ScaleScore+ESOL+IEP+race,data=finalDat,fixed_effects=~initial_teacher_class)
+mod4pos<- lm_robust(post.total_math_score~condition+pretestPos+condition:pretestPos+ScaleScore+ESOL+IEP+race,data=finalDat,fixed_effects=~initial_teacher_class)
 
 htmlreg(list(mod1,mod2,mod3,mod4,mod5),caption="OLS models estimating the effect of assignment to the instant feedback condition versus the delayed feedback condition. Confidence intervals are in brackets under coefficient estimates.",label='tab:ols',stars=c(0.1,0.05,0.01,0.001))
 ```
