@@ -103,17 +103,18 @@ if(inperson) dat<- subset(dat,virtual==0)
 dat$Z <- relevel(factor(dat$Z),ref='BAU')
 
 covNames <-
-    c("pretest","ScaleScore5","race","FEMALE","EIP","ESOL","IEP","GIFTED") ## more?
+    c("pretest","race","FEMALE","EIP","IEP","GIFTED","virtual","accelerated") ## more?
 
 dat <- dat%>%
     mutate(
         race=raceEthnicityFed%>%
                factor()%>%
-               fct_lump(n=3)%>%
-               fct_recode(`Hispanic/Latino`="1",Asian="3",White="6")%>%
+               fct_lump(n=2)%>%
+               fct_recode(Asian="3",White="6")%>%
             fct_relevel("White"),
-        ScaleScore5 = Scale(`Scale.Score5`),
-        pretest = pre.total_math_score-round(mean(pre.total_math_score,na.rm=TRUE))
+      ScaleScore5 = Scale(`Scale.Score5`),
+      accelerated=grepl('Accelerated',courseName),
+      pretest = pre.total_math_score-round(mean(pre.total_math_score,na.rm=TRUE))
     )
 
 ### balance plot:
@@ -135,9 +136,55 @@ covForm <- as.formula(paste("~",paste(covNames,collapse="+")))
 totForm <- update(covForm,Z~.)
 bals <- xbalMult(totForm,dat,trtLevs=unique(dat$Z),strata=list(noBlocks=NULL,cls=~class),na.rm=TRUE)
 
-overall <- map_dbl(bals,~.$overall['cls','p.value'])
+overall <- map_dfr(grep('BAU',names(bals),value=TRUE),~c(contrast=.,bals[[.]]$overall['cls',]))
 print(overall)
-stdDiffPretest=map_dbl(bals,~.$results['pretest','std.diff','cls'])
+
+pretestImbalance=map_dfr(grep('BAU',names(bals),value=TRUE),~c(contrast=.,round(bals[[.]]$results['pretest',,'cls'],3)))
+pretestImbalance
+
+##### standardized differences following WWC procedures 4.1 chp VI p. 15
+dCox=function(x,z){
+  pi=mean(x[z],na.rm=TRUE)
+  pc=mean(x[!z],na.rm=TRUE)
+  (qlogis(pi)-qlogis(pc))/1.65
+}
+
+hedgesG=function(x,z){
+  yi=mean(x[z],na.rm=TRUE)
+  yc=mean(x[!z],na.rm=TRUE)
+  ni=sum(!is.na(x[z]))
+  nc=sum(!is.na(x[!z]))
+  N=ni+nc
+  omega=1-3/(4*N-9)
+  omega*(yi-yc)/sqrt(((ni-1)*var(x[z])+(nc-1)*var(x[!z]))/(N-2))
+}
+
+stdDiffs=list()
+for(cond in levels(dat$Z)[-1]){
+  diffDat=
+    dat%>%
+    filter(Z%in%c(cond,'BAU'))%>%
+    mutate(Z=Z==cond)%>%
+    select(all_of(covNames),Z)
+  diffs=map_dbl(setdiff(covNames,c('pretest','race'))%>%setNames(.,.),
+                ~dCox(diffDat[[.]],diffDat$Z))
+  for(r in levels(diffDat$race)[-1]){
+    diffs=c(diffs,dCox(diffDat$race==r,diffDat$Z))
+    names(diffs)[length(diffs)] <- r
+  }
+  diffs=c(diffs,pretest=hedgesG(diffDat$pretest,diffDat$Z))
+  stdDiffs[[cond]] <- diffs
+}
+diffs <- as.data.frame(stdDiffs)
+
+diffsTab <- lapply(diffs,
+                   function(x)
+                     paste0(round(x,3),
+                            ifelse(abs(x)>0.05,'*','')))%>%
+  as.data.frame(,row.names=rownames(diffs))
+
+
+
 
 ### pretest using outcome model:
 library(lme4)
@@ -150,3 +197,4 @@ pretestModIP=lmer(pretest~Z+(1|class)+(1|teach),data=dat,subset=virtual==0)
 bySch=map(unique(dat$initial_school_id)%>%setNames(.,.),
               ~lmer(pretest~Z+(1|class)+(1|teach),data=dat,subset=initial_school_id==.))
 map(bySch,summary)
+l
