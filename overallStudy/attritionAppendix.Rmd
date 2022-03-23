@@ -15,8 +15,42 @@ library(tidyverse)
 library(RItools)
 source("../code/functions.r")
 Scale <- function(x) (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE)
-inperson=FALSE
-condNames=c(fhtt='FH2T',db='DragonBox',IF='Immediate Feedback',ac='Active Control')
+condNames=c(FH2T='FH2T',Dragon='DragonBox',ASSISTments='Immediate Feedback',BAU='active Control')
+```
+
+```{r loadData}
+## randomized data
+dat0 <- read_csv("../data/DATA20220202_4092.csv",na = c("", "NA","#NULL!"))%>%
+  filter(
+    !endsWith(rdm_condition,'Resource'),
+    DROPSCH1==0)%>%
+  mutate(
+    ScaleScore7 = Scale(Scale.Score7),
+    hasPretest=is.finite(pre.total_math_score),
+    hasPosttest=is.finite(post.total_math_score),
+    Z =rdm_condition,
+    race=raceEthnicityFed%>%
+               factor()%>%
+               fct_lump(n=2)%>%
+               fct_recode(Asian="3",White="6")%>%
+            fct_relevel("White"),
+      ScaleScore5 = Scale(`Scale.Score5`),
+      accelerated=grepl('accelerated',courseName),
+      pretest = pre.total_math_score-round(mean(pre.total_math_score,na.rm=TRUE))
+  )%>%
+  filter(!is.na(Z))%>%
+  mutate(
+    teach=ifelse(is.na(TeaIDPre),TeaIDEnd,TeaIDPre),
+    class=ifelse(is.na(ClaIDPre),ClaIDEnd,ClaIDPre))
+
+dat0$Z <- relevel(factor(dat0$Z),ref='BAU')
+
+covNames <-
+    c("pretest","race","FEMALE","EIP","IEP","GIFTED","virtual","accelerated") ## more?
+
+### analysis sample
+dat <- dat0%>%
+    filter(DROPSCH2==0,hasPretest,hasPosttest)
 ```
 
 Our approach to causal inference under attrition, following WWC (2020) and others, is to attempt to estimate treatment effects for the subset of students in our analysis sample, i.e. those who did not attrit. Under this approach, missing data methods such as full-information maximum likelihood or multiple imputation are not necessary, since we make no claims about larger populations that include both potential attritors and non-attritors. On the other hand, causal inference for non-attritors will be biased if attrition induces a selection effect–that is, if different students would attrit under different experimental conditions, and if these differences correlate with experimental outcomes. We assess the threat of attrition bias in two ways–first, by comparing attrition rates across conditions, and second by checking if non-attritting students assigned to different conditions were equivalent at baseline. More details can be found at WWC (2020). 
@@ -24,22 +58,13 @@ Our approach to causal inference under attrition, following WWC (2020) and other
 ## Calculating Attrition Rates
 
 ```{r wccAttritionNumbers}
-virtn=c(fhtt=249,db=110,IF=125,ac=120)
-virtN=c(fhtt=611-2,db=308-1,IF=308-1,ac=307-1) ### these numbers came from my
-### dataset (3/19/22) but my Ns were off by +10 for FH2T and by +3 or +4 for
-### other conditions. So I assume my "virtual" numbers are too high, too and
-### subtract 2 or 1 from each number, since about 1/3 of students were virtual
-### I need to replace this with correct numbers
-
-## overall and differential rates using numbers from the manuscript
-## (I don't have the final dataset)
-Ncond=c(fhtt=1430,db=720,IF=722,ac=719)
-if(inperson) Ncond=Ncond-virtN
+Ncond=table(dat0$Z)
 N=sum(Ncond)
-
-ncond=c(fhtt=753,db=349,IF=381,ac=366)
-if(inperson) ncond=ncond-virtn
+ncond=table(dat$Z)
 n=sum(ncond)
+
+virtn=tapply(dat$virtual,dat$Z,sum)
+virtN=tapply(dat0$virtual,dat0$Z,sum)
 
 attCond=1-ncond/Ncond
 
@@ -70,9 +95,9 @@ rownames(tab)=colnames(tab)=condNames[colnames(diffAtt)]
 kable(tab,digits=1,caption="Table 2: Overall attrition for pairwise comparisons in the lower triangular, and the differential attrition in the upper triangular.")
 ```
 
-Figure 1 superimposes the results in Table 2, for active control comparisons, onto Figure II.2 from the What Works Clearninghouse (WWC) Standards Handbook, Version 4.1 (WWC 2020), showing that attrition is tolerable under optimistic and/or cautious assumptions.
+Figure 1 superimposes the results in Table 2, for Active control comparisons, onto Figure II.2 from the What Works Clearinghouse (WWC) Standards Handbook, Version 4.1 (WWC 2020), showing that attrition is tolerable under optimistic and/or cautious assumptions.
 
-Figure 1: Attrition rates for active control comparisons, compared to WWC standards.
+Figure 1: Attrition rates for Active control comparisons, compared to WWC standards.
 ```{r wwcPlot}
 ## plot
 wwc <- read.csv("../attritionReports/wwc.csv")
@@ -90,7 +115,7 @@ diffAtt=abs(diffAtt)
 
 for(i in 1:3)
   for(j in (i+1):4){
-    if('ac'%in%colnames(diffAtt)[c(i,j)]){
+    if('BAU'%in%colnames(diffAtt)[c(i,j)]){
       ov=overallPair[i,j]*100
       diff=diffAtt[i,j]*100
       points(ov,diff,pch=16)
@@ -101,46 +126,46 @@ for(i in 1:3)
 
 ##Position text by hand
 # text(
-#   overallPair['fhtt','db']*100,
-#   diffAtt['fhtt','db']*100-0.1,
-#   paste(condNames['fhtt'],'vs.',condNames['db']),
+#   overallPair['FH2T','Dragon']*100,
+#   diffAtt['FH2T','Dragon']*100-0.1,
+#   paste(condNames['FH2T'],'vs.',condNames['Dragon']),
 #   pos=2)
 # text(
-#   overallPair['db','IF']*100,
-#   diffAtt['IF','db']*100+0.15,
-#   paste(condNames['IF'],'vs.',condNames['db']),
+#   overallPair['Dragon','if']*100,
+#   diffAtt['if','Dragon']*100+0.15,
+#   paste(condNames['if'],'vs.',condNames['Dragon']),
 #   pos=2)
 
 text(
-  overallPair['db','ac']*100,
-  diffAtt['db','ac']*100+0.1,
-  paste(condNames['db'],'vs.',condNames['ac']),
+  overallPair['Dragon','BAU']*100,
+  diffAtt['Dragon','BAU']*100+0.1,
+  paste(condNames['Dragon'],'vs.',condNames['BAU']),
   pos=2)
 text(
-  overallPair['IF','ac']*100,
-  diffAtt['IF','ac']*100+0.15,
-  paste(condNames['IF'],'vs.',condNames['ac']),
+  overallPair['ASSISTments','BAU']*100,
+  diffAtt['ASSISTments','BAU']*100+0.15,
+  paste(condNames['ASSISTments'],'vs.',condNames['BAU']),
   pos=2)
 text(
-  overallPair['fhtt','ac']*100,
-  diffAtt['fhtt','ac']*100-0.15,
-  paste(condNames['fhtt'],'vs.',condNames['ac']),
+  overallPair['FH2T','BAU']*100,
+  diffAtt['FH2T','BAU']*100-0.15,
+  paste(condNames['FH2T'],'vs.',condNames['BAU']),
   pos=2)
 
 # text(
-#   overallPair['fhtt','IF']*100,
-#   diffAtt['fhtt','IF']*100+0.15,
-#   paste(condNames['fhtt'],'vs.',condNames['IF']),
+#   overallPair['FH2T','ASSISTments']*100,
+#   diffAtt['FH2T','ASSISTments']*100+0.15,
+#   paste(condNames['FH2T'],'vs.',condNames['ASSISTments']),
 #   pos=2)
 ```
 
 Finally, the following is a test of null hypothesis that the probability of attrition is equal across the four conditions:
 ```{r testingDifferentialAttrition}
 #### testing differential attrition
-prop.test(Ncond-ncond,Ncond)
+prop.test(as.vector(Ncond-ncond),as.vector(Ncond))
 ```
 
-### Atttrition rates for students in Virtual or In-Person Conditions
+### Attrition rates for students in Virtual or In-Person Conditions
 
 Anecdotal evidence from teachers and other education professionals involved in the study suggested that some students assigned to the DragonBox condition who began the school year remotely had difficulties installing the DragonBox software, and that this may have led to higher attrition rates.
 To see whether this may be so, we decompose attrition rates by virtual versus in-person status.
@@ -191,32 +216,7 @@ To further check whether differential attrition was informative or ignorable, we
 
 Figure 2 plots covariate distributions across the four treatment groups; little imbalance is apparent.
 
-```{r loadData}
-##
-### need full data
 
-### best I got
-load('../data/analysisSample.RData')
-
-if(inperson) dat<- subset(dat,virtual==0)
-
-dat$Z <- relevel(factor(dat$Z),ref='BAU')
-
-covNames <-
-    c("pretest","race","FEMALE","EIP","IEP","GIFTED","virtual","accelerated") ## more?
-
-dat <- dat%>%
-    mutate(
-        race=raceEthnicityFed%>%
-               factor()%>%
-               fct_lump(n=2)%>%
-               fct_recode(Asian="3",White="6")%>%
-            fct_relevel("White"),
-      ScaleScore5 = Scale(`Scale.Score5`),
-      accelerated=grepl('Accelerated',courseName),
-      pretest = pre.total_math_score-round(mean(pre.total_math_score,na.rm=TRUE))
-    )
-```
 
 ```{r balancePlot, fig.cap="Figure 2: Comparing covariates across conditions"}
 ### balance plot:
@@ -237,7 +237,7 @@ For binary or categorical variables, we estimated the Cox index. Let $p_A$ and $
 $$ d_{Cox}=\frac{1}{1.65}log\left(\frac{p_A(1-p_B)}{p_B(1-p_A)}\right)$$
 See WWC (2020b), p. 15.
 
-The results for the three active control comparisons are in Table 5 and Figure 3. All of the differences are below the upper WWC threshhold of 0.25, though several are above the lower threshhold of 0.05, indicating the need for statistical adjustment. 
+The results for the three Active control comparisons are in Table 5 and Figure 3. All of the differences are below the upper WWC threshold of 0.25, though several are above the lower threshold of 0.05, indicating the need for statistical adjustment. 
 
 ```{r effectSizes}
 ##### standardized differences following WWC procedures 4.1 chp VI p. 15
@@ -286,22 +286,22 @@ diffsTab <- lapply(diffs,
 
 
 ```{r lovePlot, fig.cap="Figure 3: Effect Sizes comparing covariate means between each experimental condition and the Active Control. The solid line at 0 indicates identical means; effect sizes outside of the dashed lines at -0.05 and 0.05 indicate a need for statistical adjustment"}
-diffs%>%rownames_to_column('covr')%>%pivot_longer(-covr,names_to = "Contrast",values_to = "Effect Size")%>%mutate(covr=ifelse(covr%in%c('Asian','Other'),paste('Race:',covr),covr))%>%ggplot(aes(`Effect Size`,covr,color=Contrast))+geom_point()+geom_vline(xintercept=0)+geom_vline(xintercept=c(-0.05,0.05),linetype='dashed')+ylab(NULL)
+diffs%>%rownames_to_column('covr')%>%pivot_longer(-covr,names_to = "Contrast",values_to = "Effect Size")%>%mutate(covr=ifelse(covr%in%c('Asian','Other'),paste('race:',covr),covr))%>%ggplot(aes(`Effect Size`,covr,color=Contrast))+geom_point()+geom_vline(xintercept=0)+geom_vline(xintercept=c(-0.05,0.05),linetype='dashed')+ylab(NULL)
 ```
 
 
 ### Testing the Null Hypothesis of Baseline Equivalence
 
-If attrition is ignorable, then the observed treatment groups in the analysis sample--i.e. non-attritor--should be comparble. 
-Evidence against ignorable attrition could be expressed as evidence agains the null hypothesis 
-$$H_0: X \perp\!\!\!\!\perp Z$$
+If attrition is ignorable, then the observed treatment groups in the analysis sample--i.e. non-attritor--should be comparable. 
+Evidence against ignorable attrition could be expressed as evidence against the null hypothesis 
+$$H_0: X \perp Z$$
 where $X$ is a covariate and $Z$ indicates treatment assignment.
 In practice, we test the following simpler null hypothesis (which is also, arguably, more to the point):
 $$H_0: \mathbf{E}[X|Z=A]=\mathbf{E}[X|Z=B]$$
 of equality of expectation between treatment conditions A and B. 
 
 There are a number of methodological hurdles to a proper test. 
-First of all, the tests should account for the randomization blocking. Second, we conduct a test of $H_0$ for each covariate for three different active control comparisons, leading to multiple comparisons and (potentially) inflated Type-I error rates. 
+First of all, the tests should account for the randomization blocking. Second, we conduct a test of $H_0$ for each covariate for three different Active control comparisons, leading to multiple comparisons and (potentially) inflated Type-I error rates. 
 
 We rely on methods described in Hansen and Bowers (2008) and implemented in the `RItools` package in `R`. 
 This includes a separate omnibus test for balance in all covariates for each of the comparisons. 
@@ -323,7 +323,7 @@ kable(overall,caption='Table 6: Overall covariate balance for each of the Active
 There is some evidence for imbalance between the Active Control and DragonBox condition, although if we were to correct for having tested three separate null hypotheses, that result would cease to be statistically significant. 
 There is no evidence for imbalance in the other two contrasts. 
 
-Table 7 gives hypothesis test results (Z-scores) for each covariate in each Active Control comparison. Across the three comparisons, only pretest is significantly imbalanced. 
+Table 7 gives hypothesis test results (Z-scores) for each covariate in each Active Control comparison. across the three comparisons, only pretest is significantly imbalanced. 
 Since pretest is the most important covariate, imbalance in pretest across the groups is notable, even if multiplicity corrections would increase the p-values above 0.05. 
 
 ```{r individualBalance}
@@ -349,16 +349,4 @@ tests%>%
 
 
 
-
-# ### pretest using outcome model:
-# library(lme4)
-# library(lmerTest)
-# pretestMod=lmer(pretest~Z+(1|class)+(1|teach),data=dat)
-# summary(pretestMod)
-# 
-# pretestModIP=lmer(pretest~Z+(1|class)+(1|teach),data=dat,subset=virtual==0)
-# 
-# bySch=map(unique(dat$initial_school_id)%>%setNames(.,.),
-#               ~lmer(pretest~Z+(1|class)+(1|teach),data=dat,subset=initial_school_id==.))
-# map(bySch,summary)
 ```
