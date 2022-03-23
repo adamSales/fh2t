@@ -2,11 +2,107 @@ library(tidyverse)
 library(RItools)
 library(mosaic)
 library(lme4)
-source("../code/functions.r")
+source("code/functions.r")
+
+library(tidyverse)
+library(RItools)
+library(mosaic)
+library(lme4)
+source("code/functions.r")
 
 Scale <- function(x) (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE)
 
-dat0 <- read_csv("../data/Assessment_merged_2021_06_16_state_assessment_N=4311.csv")
+dat0 <- read_csv("data/DATA20220202_4092.csv",na = c("", "NA","#NULL!"))
+
+### attrition variables
+dat0 <- dat0%>%
+  mutate(
+    ScaleScore7 = Scale(Scale.Score7),
+    hasPretest=is.finite(pre.total_math_score),
+    hasPosttest=is.finite(post.total_math_score),
+    Z =rdm_condition
+  )%>%
+  filter(!is.na(Z))%>%
+  mutate(
+    teach=ifelse(is.na(TeaIDPre),TeaIDEnd,TeaIDPre),
+    class=ifelse(is.na(ClaIDPre),ClaIDEnd,ClaIDPre))
+
+
+
+
+### sample size numbers
+
+##"A total of 52 seventh-grade mathematics teachers and their students from 10 middle schools were recruited from a large, suburban district in the Southeastern United States in the summer of 2020. Together, these teachers taught 190 mathematics classrooms andA total of 4092 students, who were randomly assigned into four intervention conditions."
+
+## teachers are weird cuz they have different ids in S11
+## "190 mathematics classrooms"
+n_distinct(dat0$class)
+## "4092 students"
+nrow(dat0)
+
+###  "Students who were not enrolled in resource settings (n = 3972)"
+sum(!endsWith(dat0$Z,'Resource'))
+
+### "Students enrolled in resource settings (n = 120)"
+sum(endsWith(dat0$Z,'Resource'))
+
+### drop the resource students
+dat1=filter(dat0,!endsWith(dat0$Z,'Resource'))
+
+## drop the school that has no pretest scores
+## which school?
+noPre=dat1%>%
+  group_by(SchIDPre)%>%
+  summarize(pretest=mean(hasPretest))%>%
+  filter(pretest<0.01)%>%
+  pull(SchIDPre)
+
+### Which teachers?
+noPreTch=unique(dat1$TeaIDPre[dat1$SchIDPre==noPre])
+## how many students?
+sum(dat1$teach%in%noPreTch)
+
+### this is different from the 381 in the paper
+sum(dat1$DROPSCH1)
+## here are the differences:
+sch1Diffid=dat1$StuID[!dat1$teach%in%noPreTch & dat1$DROPSCH1==1]
+## they all started elsewhere, but ended up in the dropped school:
+dat1%>%filter(StuID%in%sch1Diffid)%>%xtabs(~SchIDPre+SchIDEnd,data=.)
+### more info on them:
+dat1%>%filter(StuID%in%sch1Diffid)%>%summarize(sum(virtual),sum(hasPretest),sum(hasPosttest))
+
+#### anyway let's drop 'em (I've emailed Craig... we'll see what he says)
+dat2 <- filter(dat1,DROPSCH1==0)
+
+
+noPost=dat2%>%
+  group_by(SchIDPre)%>%
+  summarize(posttest=mean(hasPosttest))%>%
+  filter(posttest<0.01)%>%
+  pull(SchIDPre)
+
+noPostTch=unique(dat1$TeaIDPre[dat1$SchIDPre==noPost])
+
+### now there's only one discrepancy
+sch2Diffid=dat2$StuID[!dat2$TeaIDPre%in%noPostTch&dat2$DROPSCH2==1]
+
+## do they have a posttest score? 
+dat2$hasPosttest[dat2$StuID==sch2Diffid]
+### no. so it doesn't really matter does it?
+
+dat3 <- dat2%>%filter(DROPSCH2==0)
+
+sum(dat3$hasPretest) ## on target
+sum(dat3$hasPretest & dat3$hasPosttest) ## ditto
+
+dat <- filter(dat3,hasPretest&hasPosttest)
+
+
+
+
+Scale <- function(x) (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE)
+
+dat0 <- read_csv("data/Assessment_merged_2022_01_19_N=4,343 - Sheet1.csv")
 
 ### attrition variables
 dat0 <- dat0%>%
