@@ -1,0 +1,288 @@
+---
+title: "Appendix B: In-Person Students"
+output: word_document
+---
+
+```{r IPinit, include=FALSE}
+library(knitr)
+opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,error=FALSE,fig.width=9,fig.height=9,
+  cache=TRUE)
+options(knitr.kable.NA='-')
+```
+
+```{r IPloadCode, include=FALSE}
+library(tidyverse)
+library(RItools)
+library(lmerTest)
+library(lme4)
+library(texreg)
+
+source("../code/functions.r")
+Scale <- function(x) (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE)
+condNames=c(FH2T='FH2T',Dragon='DragonBox',ASSISTments='Immediate Feedback',BAU='active Control')
+```
+
+```{r IPloadData}
+## randomized data
+datIP0 <- read_csv("../data/DATA20220202_4092.csv",na = c("", "NA","#NULL!"))%>%
+  filter(
+    !endsWith(rdm_condition,'Resource'),
+    virtual==0
+    )%>%
+  mutate(
+    ScaleScore7 = Scale(Scale.Score7),
+    hasPretest=is.finite(pre.total_math_score),
+    hasPosttest=is.finite(post.total_math_score),
+    Z =rdm_condition,
+    race=raceEthnicityFed%>%
+               factor()%>%
+               fct_other(keep=c("1","3","6"))%>%
+               fct_recode(Hispanic="1",Asian="3",White="6")%>%
+            fct_relevel("White"),
+      ScaleScore5 = Scale(`Scale.Score5`),
+      accelerated=grepl('Accelerated',courseName),
+      pretest = pre.total_math_score-round(mean(pre.total_math_score,na.rm=TRUE))
+  )%>%
+  filter(!is.na(Z))%>%
+  mutate(
+    teach=ifelse(is.na(TeaIDPre),TeaIDEnd,TeaIDPre),
+    class=ifelse(is.na(ClaIDPre),ClaIDEnd,ClaIDPre))
+
+noPre=datIP0%>%
+  group_by(SchIDPre)%>%
+  summarize(pretest=mean(hasPretest))%>%
+  filter(pretest<0.01)%>%
+  pull(SchIDPre)
+### Which teachers?
+noPreTch=unique(datIP0$TeaIDPre[datIP0$SchIDPre==noPre])
+
+datIP0$dropsch1a=datIP0$teach%in%noPreTch
+
+diffStuds=datIP0$StuID[datIP0$DROPSCH1==1 & !datIP0$dropsch1a]
+ndiff=length(diffStuds)
+
+datIP0$Z <- relevel(factor(datIP0$Z),ref='BAU')
+
+covNames <-
+    c("pretest","race","FEMALE","EIP","IEP","GIFTED","accelerated") ## more?
+```
+
+
+```{r IPanalysisSample}
+datIP0 <- datIP0%>%filter(!dropsch1a)
+
+
+### analysis sample
+datIP <- datIP0%>%
+    filter(DROPSCH2==0,hasPretest,hasPosttest)
+```
+
+Both overall and differential attrition was substantially worse for students who began the year with remote instruction, as opposed to in-person instruction.
+This section repeats the attrition analysis and the main HLM analysis for the subset of students who started the academic year in-person.
+
+## Attrition Analysis
+
+### Overall and Differential Attrition Rates for In-Person Students
+```{r IPwccAttritionNumbers, fig.cap="Figure B.1: Overall and Differential Attrition for In-Person Students, Plotted Against WWC Standards."}
+
+Ncond=table(datIP0$Z)
+N=sum(Ncond)
+ncond=table(datIP$Z) #
+n=sum(ncond)
+
+attCond=1-ncond/Ncond
+
+diffAtt=outer(attCond,attCond,"-")
+overallPair=diffAtt
+for(cc in names(ncond))
+  for(dd in names(ncond))
+    overallPair[cc,dd]=1-(ncond[cc]+ncond[dd])/(Ncond[cc]+Ncond[dd])
+
+tab=rbind(
+  `# Randomized`=Ncond,
+  `# in Analysis Sample`=ncond,
+  `# Attrition Rate (%)`=attCond*100)
+colnames(tab)=condNames[colnames(tab)]
+tab=cbind(Overall=c(N,n,100*(1-n/N)),tab)
+kable(tab,digits=1,caption="Table B.1: Attrition rates by experimental condition")
+
+wwc <- read.csv("../attritionReports/wwc.csv")
+names(wwc)[1] <- "Overall"
+
+
+with(wwc,
+  plot(Overall,Differential1,type="l",ylim=c(0,11),
+       main="WWC Attrition Standards",
+       xlab="Overall Attrition (In-Person)", ylab="Differential Attrition (In-Person)"))
+  polygon(c(0,0,65,65),c(0,11,11,0),col="red")
+  polygon(c(0,wwc[[1]],65),c(0,wwc$Differential1,0),col="yellow")
+  polygon(c(0,wwc[[1]]),c(0,wwc$Differential0),col="green")
+
+diffAtt=abs(diffAtt)
+
+for(i in 1:3)
+  for(j in (i+1):4){
+    if('BAU'%in%colnames(diffAtt)[c(i,j)]){
+      ov=overallPair[i,j]*100
+      diff=diffAtt[i,j]*100
+      points(ov,diff,pch=16)
+    }
+    # text(ov,diff,
+    #      paste(condNames[i],'vs',condNames[j]),pos=2)
+  }
+
+text(
+  overallPair['Dragon','BAU']*100,
+  diffAtt['Dragon','BAU']*100,
+  paste(condNames['Dragon'],'vs.',condNames['BAU']),
+  pos=1)
+text(
+  overallPair['ASSISTments','BAU']*100,
+  diffAtt['ASSISTments','BAU']*100,
+  paste(condNames['ASSISTments'],'vs.',condNames['BAU']),
+  pos=2)
+text(
+  overallPair['FH2T','BAU']*100,
+  diffAtt['FH2T','BAU']*100,
+  paste(condNames['FH2T'],'vs.',condNames['BAU']),
+  pos=2)
+```
+
+### Baseline Equivalence for In-Person Students
+
+
+Figure B.2 plots covariate distributions across the four treatment groups; little imbalance is apparent.
+
+
+
+```{r IPbalancePlot, fig.cap="Figure B.2: Comparing covariates across conditions"}
+### balance plot:
+datIP%>%
+    mutate(race=substr(as.character(race),1,1))%>%
+  balPlot(covNames,trtVar="Z",data=.)
+```
+
+
+
+
+```{r IPeffectSizes}
+##### standardized differences following WWC procedures 4.1 chp VI p. 15
+dCox=function(x,z){
+  pi=mean(x[z],na.rm=TRUE)
+  pc=mean(x[!z],na.rm=TRUE)
+  (qlogis(pi)-qlogis(pc))/1.65
+}
+
+hedgesG=function(x,z){
+  yi=mean(x[z],na.rm=TRUE)
+  yc=mean(x[!z],na.rm=TRUE)
+  ni=sum(!is.na(x[z]))
+  nc=sum(!is.na(x[!z]))
+  N=ni+nc
+  omega=1-3/(4*N-9)
+  omega*(yi-yc)/sqrt(((ni-1)*var(x[z])+(nc-1)*var(x[!z]))/(N-2))
+}
+
+stdDiffs=list()
+for(cond in levels(datIP$Z)[-1]){
+  diffDat=
+    datIP%>%
+    filter(Z%in%c(cond,'BAU'))%>%
+    mutate(Z=Z==cond)%>%
+    select(all_of(covNames),Z)
+  diffs=map_dbl(setdiff(covNames,c('pretest','race'))%>%setNames(.,.),
+                ~dCox(diffDat[[.]],diffDat$Z))
+  for(r in levels(diffDat$race)[-1]){
+    diffs=c(diffs,dCox(diffDat$race==r,diffDat$Z))
+    names(diffs)[length(diffs)] <- r
+  }
+  diffs=c(diffs,pretest=hedgesG(diffDat$pretest,diffDat$Z))
+  stdDiffs[[cond]] <- diffs
+}
+diffs <- as.data.frame(stdDiffs)
+
+lapply(diffs,
+       function(x)
+         paste0(round(x,3),
+                ifelse(abs(x)>0.05,'*','')))%>%
+  as.data.frame(row.names=rownames(diffs))%>%
+  kable(caption="Table B.2: Effect sizes for covariate mean differences between each of the experimental conditions and the Active Control for in-person students. Stars indicate effect sizes >0.05, for which WWC recommends statistical adjustment",
+        digits=3)
+```
+
+```{r IPritools}
+covForm <- as.formula(paste("~",paste(covNames,collapse="+")))
+totForm <- update(covForm,Z~.)
+bals <- xbalMult(totForm,datIP,trtLevs=unique(datIP$Z),strata=list(noBlocks=NULL,cls=~class),na.rm=TRUE)
+
+overall <- map_dfr(grep('BAU',names(bals),value=TRUE),~c(contrast=.,bals[[.]]$overall['cls',]))
+nnn=gsub(' |vs\\.|BAU','',overall$contrast)
+overall$contrast=c(ASSISTments='Immediate Feedback',Dragon='DragonBox',FH2T="FH2T")[nnn]
+
+kable(overall,caption='Table B.3: Overall covariate balance for each of the Active Control comparisons for In-Person students',digits=3)
+```
+
+```{r IPindividualBalance}
+ind <- map(bals[grep('BAU',names(bals),value=TRUE)],~data.frame(.$results[,c('z','p'),'cls']))
+ind <- map(ind,~data.frame(Z=paste0(-round(.$z,3),ifelse(.$p<0.001,'***',ifelse(.$p<0.01,'**',ifelse(.$p<0.05,'*',ifelse(.$p<0.1,'.',''))))),row.names = rownames(.)))
+nnn=gsub(' |vs\\.|BAU','',names(ind))
+ind=as.data.frame(ind,row.names = rownames(ind[[1]]))
+names(ind)=c(ASSISTments='Immediate Feedback',Dragon='DragonBox',FH2T="FH2T")[nnn]
+kable(ind,caption='Table B.4: Z-scores testing baseline covariate balance for in-person students between each experimental condition and the Active Control')
+```
+
+## HLM Models
+
+```{r IPhlm,results='asis'}
+datIP$post=datIP$post.total_math_score
+datIP$pre=datIP$pre.total_math_score
+
+datIP$ncomp=rowSums(datIP[,startsWith(names(datIP),'complete_assignment')])
+datIP$percomp=datIP$ncomp/9
+#datIP$percomp=datIP$percomp-mean(datIP$percomp)
+
+datIP=mutate(datIP,
+             FH2T=ifelse(Z=='FH2T',1,0),
+             DragonBox=ifelse(Z=='Dragon',1,0),
+             Instant=ifelse(Z=='ASSISTments',1,0),
+             Asian=ifelse(race=='Asian',1,0),
+             Hispanic=ifelse(race=='Hispanic',1,0),
+             Other=ifelse(race=='Other',1,0))
+
+#datIP$pre=datIP$pre-mean(datIP$pre)
+center=function(x) scale(x,center=TRUE,scale=FALSE)
+mod1=lmer(post~FH2T+DragonBox+Instant+(1|class)+(1|teach),data=datIP)
+mod2=update(mod1,.~.+center(pre)+Asian+Hispanic+Other+MALE+GIFTED+accelerated+EIP+IEP)
+mod3=update(mod2,.~.+center(percomp))
+mod4=update(mod3,.~.+center(pre):(FH2T+DragonBox+Instant))
+
+
+## list(mod1,mod2,mod3,mod4)%>%
+##   htmlreg(#file="tableZZ4orig.html",
+##     ci.force=TRUE,single.row=TRUE,
+##     reorder.coef=c(1,4,3,2,5:14,17,16,15),digits=3,
+##     doctype = FALSE)#,star.symbol="\\.")
+
+
+stars=function(p)
+  ifelse(p<0.001,'***',
+  ifelse(p<0.01,'**',
+  ifelse(p<0.05,'*',
+         ifelse(p<0.1,'.',''))))
+
+modSumm=function(mod){
+  ccc=summary(mod)$coef
+  data.frame(
+    x=rownames(ccc),
+    coef=paste0(round(ccc[,1],2),stars(ccc[,5])),
+    ci=confint(mod,method='Wald')[-c(1:3),]%>%round(2)%>%apply(1,function(x) paste0('[',x[1],',',x[2],']'))
+  )
+}
+
+map(list(mod1,mod2,mod3,mod4),
+    modSumm)%>%
+  reduce(full_join,by='x')%>%
+  kable(col.names=c(' ','Model 1', ' ', 'Model 2', ' ','Model 3',' ','Model 4',' '),
+        caption='HLMs for in-person students')
+
+```
