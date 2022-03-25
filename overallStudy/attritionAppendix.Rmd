@@ -35,7 +35,7 @@ dat0 <- read_csv("../data/DATA20220202_4092.csv",na = c("", "NA","#NULL!"))%>%
                fct_recode(Asian="3",White="6")%>%
             fct_relevel("White"),
       ScaleScore5 = Scale(`Scale.Score5`),
-      accelerated=grepl('accelerated',courseName),
+      accelerated=grepl('Accelerated',courseName),
       pretest = pre.total_math_score-round(mean(pre.total_math_score,na.rm=TRUE))
   )%>%
   filter(!is.na(Z))%>%
@@ -53,7 +53,7 @@ dat <- dat0%>%
     filter(DROPSCH2==0,hasPretest,hasPosttest)
 ```
 
-Our approach to causal inference under attrition, following WWC (2020) and others, is to attempt to estimate treatment effects for the subset of students in our analysis sample, i.e. those who did not attrit. Under this approach, missing data methods such as full-information maximum likelihood or multiple imputation are not necessary, since we make no claims about larger populations that include both potential attritors and non-attritors. On the other hand, causal inference for non-attritors will be biased if attrition induces a selection effect–that is, if different students would attrit under different experimental conditions, and if these differences correlate with experimental outcomes. We assess the threat of attrition bias in two ways–first, by comparing attrition rates across conditions, and second by checking if non-attritting students assigned to different conditions were equivalent at baseline. More details can be found at WWC (2020). 
+Our approach to causal inference under attrition, following WWC (2020) and others, is to attempt to estimate treatment effects for the subset of students in our analysis sample, i.e. those who did not attrit. Under this approach, missing data methods such as full-information maximum likelihood or multiple imputation are not necessary, since we make no claims about larger populations that include both potential attritors and non-attritors. On the other hand, causal inference for non-attritors will be biased if attrition induces a selection effect–that is, if different students would attrit under different experimental conditions, and if these differences correlate with experimental outcomes. We assess the threat of attrition bias in two ways–first, by comparing attrition rates across conditions, and second by checking if non-attritting students assigned to different conditions were equivalent at baseline. More details can be found at WWC (2020).
 
 ## Calculating Attrition Rates
 
@@ -208,7 +208,7 @@ Overall attrition rates are substantially higher for virtual students ($\approx$
 Differential attrition is similar for virtual and in-person students when comparing Active Control to FH2T (-1.7 vs -1.8) or to Immediate Feedback (-1.5 vs -2.1).
 However, when comparing Active Control to DragonBox, differential attrition is double for virtual students (3.4) than for in-person students (1.7), providing some support for the hypothesis that virtual students assigned to DragonBox had particular difficulty participating in the experiment.
 
-Notably, the overall and differential attrition rates for virtual students do not meet either the optimistic or cautious WWC standards, while the rates for in-person students meet both sets of standards. 
+Notably, the overall and differential attrition rates for virtual students do not meet either the optimistic or cautious WWC standards, while the rates for in-person students meet both sets of standards.
 
 ## Baseline Equivalence for Non-Attritors
 
@@ -231,13 +231,13 @@ dat%>%
 First, we estimated covariate imbalance between conditions for each covariate, in the scale recommended by WWC (2020).
 In particular, for pretest (a numeric variable), we estimated Hedges' g comparing pretest between conditions "A" and "B" as:
 $$ g=\left(1-\frac{3}{4(n_A+n_B)-9}\right)\frac{\bar{x}_A-\bar{x}_B}{\sqrt{\frac{(n_A-1)s_A^2+(n_B-1)s_B^2}{n_A+n+B-2}}}$$
-where $\bar{x}_A$, $S^2_A$, and $n_A$ are the average and sample variance pretest and sample size in condition A, and $\bar{x}_B$, $S^2_B$, and $n_B$ are defined similarly. 
+where $\bar{x}_A$, $S^2_A$, and $n_A$ are the average and sample variance pretest and sample size in condition A, and $\bar{x}_B$, $S^2_B$, and $n_B$ are defined similarly.
 
 For binary or categorical variables, we estimated the Cox index. Let $p_A$ and $p_B$ be the sample proportions in conditions A and B. Then
 $$ d_{Cox}=\frac{1}{1.65}log\left(\frac{p_A(1-p_B)}{p_B(1-p_A)}\right)$$
 See WWC (2020b), p. 15.
 
-The results for the three Active control comparisons are in Table 5 and Figure 3. All of the differences are below the upper WWC threshold of 0.25, though several are above the lower threshold of 0.05, indicating the need for statistical adjustment. 
+The results for the three Active control comparisons are in Table 5 and Figure 3. All of the differences are below the upper WWC threshold of 0.25, though several are above the lower threshold of 0.05, indicating the need for statistical adjustment.
 
 ```{r effectSizes}
 ##### standardized differences following WWC procedures 4.1 chp VI p. 15
@@ -275,12 +275,12 @@ for(cond in levels(dat$Z)[-1]){
 }
 diffs <- as.data.frame(stdDiffs)
 
-diffsTab <- lapply(diffs,
-                   function(x)
-                     paste0(round(x,3),
-                            ifelse(abs(x)>0.05,'*','')))%>%
+lapply(diffs,
+       function(x)
+         paste0(round(x,3),
+                ifelse(abs(x)>0.05,'*','')))%>%
   as.data.frame(row.names=rownames(diffs))%>%
-  kable(caption="Table 5: Cox indices (for binary or categorical covariates) and Hedges's g (for numeric covariates) comparing baseline covariate means between the Active Control and each of the experimental conditions",
+  kable(caption="Table 5: Cox indices (for binary or categorical covariates) and Hedges's g (for numeric covariates) comparing baseline covariate means between each of the experimental conditions and the Active Control (positive differences indicate higher means for the experimental conditions, compared to Active Control). Stars indicate effect sizes >0.05, for which WWC recommends statistical adjustment",
         digits=3)
 ```
 
@@ -292,19 +292,19 @@ diffs%>%rownames_to_column('covr')%>%pivot_longer(-covr,names_to = "Contrast",va
 
 ### Testing the Null Hypothesis of Baseline Equivalence
 
-If attrition is ignorable, then the observed treatment groups in the analysis sample--i.e. non-attritor--should be comparable. 
-Evidence against ignorable attrition could be expressed as evidence against the null hypothesis 
+If attrition is ignorable, then the observed treatment groups in the analysis sample--i.e. non-attritor--should be comparable.
+Evidence against ignorable attrition could be expressed as evidence against the null hypothesis
 $$H_0: X \perp Z$$
 where $X$ is a covariate and $Z$ indicates treatment assignment.
 In practice, we test the following simpler null hypothesis (which is also, arguably, more to the point):
 $$H_0: \mathbf{E}[X|Z=A]=\mathbf{E}[X|Z=B]$$
-of equality of expectation between treatment conditions A and B. 
+of equality of expectation between treatment conditions A and B.
 
-There are a number of methodological hurdles to a proper test. 
-First of all, the tests should account for the randomization blocking. Second, we conduct a test of $H_0$ for each covariate for three different Active control comparisons, leading to multiple comparisons and (potentially) inflated Type-I error rates. 
+There are a number of methodological hurdles to a proper test.
+First of all, the tests should account for the randomization blocking. Second, we conduct a test of $H_0$ for each covariate for three different Active control comparisons, leading to multiple comparisons and (potentially) inflated Type-I error rates.
 
-We rely on methods described in Hansen and Bowers (2008) and implemented in the `RItools` package in `R`. 
-This includes a separate omnibus test for balance in all covariates for each of the comparisons. 
+We rely on methods described in Hansen and Bowers (2008) and implemented in the `RItools` package in `R`.
+This includes a separate omnibus test for balance in all covariates for each of the comparisons.
 It also accounts for blocking (for simplicity, we use classrooms as blocks) and computes tests for individual covariates.
 
 Table 6 gives the test statistics and p-values for omnibus tests across all covariates:
@@ -320,15 +320,15 @@ overall$contrast=c(ASSISTments='Immediate Feedback',Dragon='DragonBox',FH2T="FH2
 kable(overall,caption='Table 6: Overall covariate balance for each of the Active Control comparisons',digits=3)
 ```
 
-There is some evidence for imbalance between the Active Control and DragonBox condition, although if we were to correct for having tested three separate null hypotheses, that result would cease to be statistically significant. 
-There is no evidence for imbalance in the other two contrasts. 
+There is some evidence for imbalance between the Active Control and DragonBox condition, although if we were to correct for having tested three separate null hypotheses, that result would cease to be statistically significant.
+There is no evidence for imbalance in the other two contrasts.
 
-Table 7 gives hypothesis test results (Z-scores) for each covariate in each Active Control comparison. across the three comparisons, only pretest is significantly imbalanced. 
-Since pretest is the most important covariate, imbalance in pretest across the groups is notable, even if multiplicity corrections would increase the p-values above 0.05. 
+Table 7 gives hypothesis test results (Z-scores) for each covariate in each Active Control comparison. across the three comparisons, only pretest is significantly imbalanced.
+Since pretest is the most important covariate, imbalance in pretest across the groups is notable, even if multiplicity corrections would increase the p-values above 0.05.
 
 ```{r individualBalance}
 ind <- map(bals[grep('BAU',names(bals),value=TRUE)],~data.frame(.$results[,c('z','p'),'cls']))
-ind <- map(ind,~data.frame(Z=paste0(round(.$z,3),ifelse(.$p<0.001,'***',ifelse(.$p<0.01,'**',ifelse(.$p<0.05,'*',ifelse(.$p<0.1,'.',''))))),row.names = rownames(.)))
+ind <- map(ind,~data.frame(Z=paste0(round(-.$z,3),ifelse(.$p<0.001,'***',ifelse(.$p<0.01,'**',ifelse(.$p<0.05,'*',ifelse(.$p<0.1,'.',''))))),row.names = rownames(.)))
 nnn=gsub(' |vs\\.|BAU','',names(ind))
 ind=as.data.frame(ind,row.names = rownames(ind[[1]]))
 names(ind)=c(ASSISTments='Immediate Feedback',Dragon='DragonBox',FH2T="FH2T")[nnn]
@@ -345,8 +345,6 @@ tests$covariate <- covNames
 tests%>%
   select(covariate,method,statistic,p.value,p.adj)%>%
   knitr::kable()
-
-
 
 
 ```
