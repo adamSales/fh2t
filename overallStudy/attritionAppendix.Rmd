@@ -22,8 +22,7 @@ condNames=c(FH2T='FH2T',Dragon='DragonBox',ASSISTments='Immediate Feedback',BAU=
 ## randomized data
 dat0 <- read_csv("../data/DATA20220202_4092.csv",na = c("", "NA","#NULL!"))%>%
   filter(
-    !endsWith(rdm_condition,'Resource'),
-    DROPSCH1==0)%>%
+    !endsWith(rdm_condition,'Resource'))%>%
   mutate(
     ScaleScore7 = Scale(Scale.Score7),
     hasPretest=is.finite(pre.total_math_score),
@@ -43,15 +42,37 @@ dat0 <- read_csv("../data/DATA20220202_4092.csv",na = c("", "NA","#NULL!"))%>%
     teach=ifelse(is.na(TeaIDPre),TeaIDEnd,TeaIDPre),
     class=ifelse(is.na(ClaIDPre),ClaIDEnd,ClaIDPre))
 
+noPre=dat1%>%
+  group_by(SchIDPre)%>%
+  summarize(pretest=mean(hasPretest))%>%
+  filter(pretest<0.01)%>%
+  pull(SchIDPre)
+### Which teachers?
+noPreTch=unique(dat1$TeaIDPre[dat1$SchIDPre==noPre])
+
+dat0$dropsch1a=dat0$teach%in%noPreTch
+
+diffStuds=dat0$StuID[dat0$DROPSCH1==1 & !dat0$dropsch1a]
+ndiff=length(diffStuds)
+
 dat0$Z <- relevel(factor(dat0$Z),ref='BAU')
 
 covNames <-
     c("pretest","race","FEMALE","EIP","IEP","GIFTED","virtual","accelerated") ## more?
+```
+
+
+```{r analysisSample}
+dat0 <- dat0%>%filter(!dropsch1a)
+
 
 ### analysis sample
 dat <- dat0%>%
     filter(DROPSCH2==0,hasPretest,hasPosttest)
 ```
+
+
+[[NOTE: THE FOLLOWING IS PARAGRAPH IS A VERBATIM COPY OF A PARAGRAPH IN THE MAIN MANUSCRIPT. IF WE LEAVE IT IN THERE, WE SHOULD REMOVE IT HERE]]
 
 Our approach to causal inference under attrition, following WWC (2020) and others, is to attempt to estimate treatment effects for the subset of students in our analysis sample, i.e. those who did not attrit. Under this approach, missing data methods such as full-information maximum likelihood or multiple imputation are not necessary, since we make no claims about larger populations that include both potential attritors and non-attritors. On the other hand, causal inference for non-attritors will be biased if attrition induces a selection effect–that is, if different students would attrit under different experimental conditions, and if these differences correlate with experimental outcomes. We assess the threat of attrition bias in two ways–first, by comparing attrition rates across conditions, and second by checking if non-attritting students assigned to different conditions were equivalent at baseline. More details can be found at WWC (2020).
 
@@ -328,7 +349,7 @@ Since pretest is the most important covariate, imbalance in pretest across the g
 
 ```{r individualBalance}
 ind <- map(bals[grep('BAU',names(bals),value=TRUE)],~data.frame(.$results[,c('z','p'),'cls']))
-ind <- map(ind,~data.frame(Z=paste0(round(-.$z,3),ifelse(.$p<0.001,'***',ifelse(.$p<0.01,'**',ifelse(.$p<0.05,'*',ifelse(.$p<0.1,'.',''))))),row.names = rownames(.)))
+ind <- map(ind,~data.frame(Z=paste0(-round(.$z,3),ifelse(.$p<0.001,'***',ifelse(.$p<0.01,'**',ifelse(.$p<0.05,'*',ifelse(.$p<0.1,'.',''))))),row.names = rownames(.)))
 nnn=gsub(' |vs\\.|BAU','',names(ind))
 ind=as.data.frame(ind,row.names = rownames(ind[[1]]))
 names(ind)=c(ASSISTments='Immediate Feedback',Dragon='DragonBox',FH2T="FH2T")[nnn]
@@ -345,6 +366,8 @@ tests$covariate <- covNames
 tests%>%
   select(covariate,method,statistic,p.value,p.adj)%>%
   knitr::kable()
+
+
 
 
 ```
