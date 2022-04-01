@@ -24,7 +24,7 @@ Our approach to causal inference under attrition, following WWC (2020) and other
 
 Table: Table 1: Attrition rates by experimental condition
 
-|                     | Overall| active Control| Immediate Feedback| DragonBox|   FH2T|
+|                     | Overall| Active Control| Immediate Feedback| DragonBox|   FH2T|
 |:--------------------|-------:|--------------:|------------------:|---------:|------:|
 |# Randomized         |  3612.0|          723.0|              725.0|     724.0| 1440.0|
 |# in Analysis Sample |  1850.0|          366.0|              381.0|     350.0|  753.0|
@@ -35,9 +35,9 @@ To compare overall and differential attrition for pairwise comparisons of FH2T, 
 
 Table: Table 2: Overall attrition for pairwise comparisons in the lower triangular, and the differential attrition in the upper triangular.
 
-|                   | active Control| Immediate Feedback| DragonBox| FH2T|
+|                   | Active Control| Immediate Feedback| DragonBox| FH2T|
 |:------------------|--------------:|------------------:|---------:|----:|
-|active Control     |              -|                1.9|      -2.3|  1.7|
+|Active Control     |              -|                1.9|      -2.3|  1.7|
 |Immediate Feedback |           48.4|                  -|      -4.2| -0.3|
 |DragonBox          |           50.5|               49.6|         -|  3.9|
 |FH2T               |           48.3|               47.6|      49.0|    -|
@@ -70,7 +70,7 @@ To see whether this may be so, we decompose attrition rates by virtual versus in
 
 Table: Table 3: Population and sample sizes and attrition rates for virtual students
 
-|                     | Overall| active Control| Immediate Feedback| DragonBox|  FH2T|
+|                     | Overall| Active Control| Immediate Feedback| DragonBox|  FH2T|
 |:--------------------|-------:|--------------:|------------------:|---------:|-----:|
 |# Randomized         |  1534.0|          307.0|              308.0|       308| 611.0|
 |# in Analysis Sample |   605.0|          120.0|              125.0|       111| 249.0|
@@ -79,15 +79,17 @@ Table: Table 3: Population and sample sizes and attrition rates for virtual stud
 
 Table: Table 4: Population and sample sizes and attrition rates for in-person students
 
-|                     | Overall| active Control| Immediate Feedback| DragonBox|  FH2T|
+|                     | Overall| Active Control| Immediate Feedback| DragonBox|  FH2T|
 |:--------------------|-------:|--------------:|------------------:|---------:|-----:|
 |# Randomized         |  2078.0|          416.0|              417.0|     416.0| 829.0|
 |# in Analysis Sample |  1245.0|          246.0|              256.0|     239.0| 504.0|
 |# Attrition Rate (%) |    40.1|           40.9|               38.6|      42.5|  39.2|
 
-Overall attrition rates are substantially higher for virtual students ($\approx$60%) than for in-person students ($\approx$40\%).
-Differential attrition is similar for virtual and in-person students when comparing Active Control to FH2T (-1.7 vs -1.8) or to Immediate Feedback (-1.5 vs -2.1).
-However, when comparing Active Control to DragonBox, differential attrition is double for virtual students (3.4) than for in-person students (1.7), providing some support for the hypothesis that virtual students assigned to DragonBox had particular difficulty participating in the experiment.
+
+
+Overall attrition rates are substantially higher for virtual students (roughly 61\%) than for in-person students (roughly 40\%).
+Differential attrition is similar for virtual and in-person students when comparing Active Control to FH2T (-1.7 vs -1.7) or to Immediate Feedback (-1.5 vs -2.3).
+However, when comparing Active Control to DragonBox, differential attrition is nearly double for virtual students (3) than for in-person students (1.7), providing some support for the hypothesis that virtual students assigned to DragonBox had particular difficulty participating in the experiment.
 
 Notably, the overall and differential attrition rates for virtual students do not meet either the optimistic or cautious WWC standards, while the rates for in-person students meet both sets of standards.
 
@@ -185,8 +187,3 @@ Table: Table 7: Z-scores testing baseline covariate balance between each experim
 
 
 
-
-
-## In-Person Students
-
-![plot of chunk inpersonAttritionFig](figure/inpersonAttritionFig-1.png)

@@ -15,7 +15,7 @@ library(tidyverse)
 library(RItools)
 source("../code/functions.r")
 Scale <- function(x) (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE)
-condNames=c(FH2T='FH2T',Dragon='DragonBox',ASSISTments='Immediate Feedback',BAU='active Control')
+condNames=c(FH2T='FH2T',Dragon='DragonBox',ASSISTments='Immediate Feedback',BAU='Active Control')
 ```
 
 ```{r loadData}
@@ -42,13 +42,13 @@ dat0 <- read_csv("../data/DATA20220202_4092.csv",na = c("", "NA","#NULL!"))%>%
     teach=ifelse(is.na(TeaIDPre),TeaIDEnd,TeaIDPre),
     class=ifelse(is.na(ClaIDPre),ClaIDEnd,ClaIDPre))
 
-noPre=dat1%>%
+noPre=dat0%>%
   group_by(SchIDPre)%>%
   summarize(pretest=mean(hasPretest))%>%
   filter(pretest<0.01)%>%
   pull(SchIDPre)
 ### Which teachers?
-noPreTch=unique(dat1$TeaIDPre[dat1$SchIDPre==noPre])
+noPreTch=unique(dat0$TeaIDPre[dat0$SchIDPre==noPre])
 
 dat0$dropsch1a=dat0$teach%in%noPreTch
 
@@ -196,14 +196,16 @@ attCond=1-virtn/virtN
 N=sum(virtN)
 n=sum(virtn)
 
-tab=rbind(
+tabVirt=rbind(
   `# Randomized`=virtN,
   `# in Analysis Sample`=virtn,
   `# Attrition Rate (%)`=attCond*100)
-colnames(tab)=condNames[colnames(tab)]
-tab=cbind(Overall=c(N,n,100*(1-n/N)),tab)
+colnames(tabVirt)=condNames[colnames(tabVirt)]
+tabVirt=cbind(Overall=c(N,n,100*(1-n/N)),tabVirt)
 
-kable(tab,digits=1,caption="Table 3: Population and sample sizes and attrition rates for virtual students")
+virtAtt=round((1-n/N)*100)
+
+kable(tabVirt,digits=1,caption="Table 3: Population and sample sizes and attrition rates for virtual students")
 ```
 
 ```{r ipAttrition}
@@ -214,20 +216,27 @@ attCond=1-ipn/ipN
 N=sum(ipN)
 n=sum(ipn)
 
-tab=rbind(
+ipAtt=round((1-n/N)*100)
+
+tabIP=rbind(
   `# Randomized`=ipN,
   `# in Analysis Sample`=ipn,
   `# Attrition Rate (%)`=attCond*100)
-colnames(tab)=condNames[colnames(tab)]
-tab=cbind(Overall=c(N,n,100*(1-n/N)),tab)
+colnames(tabIP)=condNames[colnames(tabIP)]
+tabIP=cbind(Overall=c(N,n,100*(1-n/N)),tabIP)
 ## Baseline equivalence between conditions
 
-kable(tab,digits=1,caption="Table 4: Population and sample sizes and attrition rates for in-person students")
+kable(tabIP,digits=1,caption="Table 4: Population and sample sizes and attrition rates for in-person students")
 ```
 
-Overall attrition rates are substantially higher for virtual students ($\approx$60%) than for in-person students ($\approx$40\%).
-Differential attrition is similar for virtual and in-person students when comparing Active Control to FH2T (-1.7 vs -1.8) or to Immediate Feedback (-1.5 vs -2.1).
-However, when comparing Active Control to DragonBox, differential attrition is double for virtual students (3.4) than for in-person students (1.7), providing some support for the hypothesis that virtual students assigned to DragonBox had particular difficulty participating in the experiment.
+```{r func}
+da=function(TAB,cont)
+  round(TAB[3,cont]-TAB[3,'Active Control'],1)
+```
+
+Overall attrition rates are substantially higher for virtual students (roughly `r virtAtt`\%) than for in-person students (roughly `r ipAtt`\%).
+Differential attrition is similar for virtual and in-person students when comparing Active Control to FH2T (`r da(tabVirt,'FH2T')` vs `r da(tabIP,'FH2T')`) or to Immediate Feedback (`r da(tabVirt,'Immediate Feedback')` vs `r da(tabIP,'Immediate Feedback')`).
+However, when comparing Active Control to DragonBox, differential attrition is nearly double for virtual students (`r da(tabVirt,'DragonBox')`) than for in-person students (`r da(tabIP,'DragonBox')`), providing some support for the hypothesis that virtual students assigned to DragonBox had particular difficulty participating in the experiment.
 
 Notably, the overall and differential attrition rates for virtual students do not meet either the optimistic or cautious WWC standards, while the rates for in-person students meet both sets of standards.
 

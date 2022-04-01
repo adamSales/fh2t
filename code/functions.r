@@ -50,7 +50,9 @@ balTestOne <- function(x,Z,cls){
     Z <- Z[keep]
     if(!missing(cls)) cls <- cls[keep]
     if(all(unique(na.omit(x))%in%c(0,1)))
-        return(prop.test(x~Z)%>%tidy()%>%mutate(method='prop.test'))
+        return(
+	prop.test(tapply(x,Z,sum),tapply(!is.na(x),Z,sum))%>%
+	tidy()%>%mutate(method='prop.test'))
     if(is.factor(x)|is.character(x))
         return(chisq.test(x,Z)%>%tidy()%>%mutate(method='chisq.test'))
 
@@ -91,4 +93,26 @@ plotXbals <- function(bals){
                  geom_vline(xintercept=c(-.25,-.05,.05,.25),linetype='dotted')+
                      guides(color=FALSE,fill=FALSE,shape=FALSE))
     grid.arrange(arrangeGrob(grobs=plots))
+}
+
+
+plotWWC=function(ov,diff,labs,wwc){
+  if(missing(wwc)) wwc=read.csv("attritionReports/wwc.csv")
+  names(wwc)[1] <- "Overall"
+
+
+  with(wwc,
+  plot(Overall,Differential1,type="l",ylim=c(0,11),
+       main="Midtest Including Pretest No-Shows",
+                  xlab="Overall Attrition", ylab="Differential Attrition"))
+  polygon(c(0,0,65,65),c(0,11,11,0),col="red")
+  polygon(c(0,wwc[[1]],65),c(0,wwc$Differential1,0),col="yellow")
+  polygon(c(0,wwc[[1]]),c(0,wwc$Differential0),col="green")
+
+  if(all(ov<1)) ov <- ov*100
+  diff <- abs(diff)
+  if(all(diff< 1)) diff <- diff*100
+
+  points(ov,diff,pch=16)
+  text(ov,diff,labs,pos=2)
 }
