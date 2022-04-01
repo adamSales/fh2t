@@ -47,3 +47,6 @@ pilotPaper.pdf
 Logins*
 *.xlsx
 
+*.docx
+*.log
+*.html
