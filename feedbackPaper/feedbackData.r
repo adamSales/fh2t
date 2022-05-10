@@ -6,7 +6,21 @@ library(texreg)
 source("code/functions.r")
 
 
-Scale <- function(x) (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE)
+psd=function(y,z){
+  z=z[!is.na(y)]
+  y=y[!is.na(y)]
+  z=as.numeric(z)
+  n1=sum(z==1)
+  n0=sum(z!=1)
+  v1=var(y[z==1])
+  v0=var(y[z!=1])
+  sqrt(((n1-1)*v1+(n0-1)*v0)/(n1+n0-2))
+}
+
+Scale <- function(x,z=NULL){
+  scl <- if(is.null(z)) sd(x,na.rm=TRUE) else psd(x,z)
+  (x-mean(x,na.rm=TRUE))/scl
+}
 
 dat0 <- read_csv("data/DATA20220202_4092.csv",na = c("", "NA","#NULL!"))
 
@@ -14,13 +28,14 @@ dat0 <- read_csv("data/DATA20220202_4092.csv",na = c("", "NA","#NULL!"))
 dat1 <- dat0%>%
   filter(!is.na(rdm_condition),rdm_condition%in%c('ASSISTments','BAU'))%>%
   mutate(
-    ScaleScore7 = Scale(Scale.Score7),
-    hasStatetest=is.finite(ScaleScore7),
+    Z =fct_recode(factor(rdm_condition),Delayed="BAU",Immediate="ASSISTments")%>%relevel('Delayed'),
+    #ScaleScore7 = Scale(Scale.Score7,Z),
+    #postS=Scale(post.total_math_score,Z),
+    hasStatetest=is.finite(Scale.Score7),
     hasPretest=is.finite(pre.total_math_score),
     #hasMidtest=is.finite(mid.total_math_score),
     hasPosttest=is.finite(post.total_math_score),
-    hasBoth=hasStatetest&hasPosttest,
-    Z =fct_recode(factor(rdm_condition),Delayed="BAU",Immediate="ASSISTments"),
+    hasBothtest=hasStatetest&hasPosttest,
     race=raceEthnicityFed%>%
                factor()%>%
                fct_lump_min(100)%>%
@@ -37,12 +52,12 @@ dat1 <- dat0%>%
         White="6",
         `Two or more races`="7")%>%
       fct_explicit_na("Unknown"),
-    Gender=factor(ifelse(FEMALE==1,'Female','Male'))%>%fct_explicit_na("Unknown"),
+    accelerated=grepl('Accelerated',courseName),
+    #Gender=factor(ifelse(FEMALE==1,'Female','Male'))%>%fct_explicit_na("Unknown"),
     teach=ifelse(is.na(TeaIDPre),TeaIDEnd,TeaIDPre),
-    class=ifelse(is.na(ClaIDPre),ClaIDEnd,ClaIDPre))%>%
-  group_by(class)%>%
-  mutate(ScaleScore5imp=ifelse(is.na(Scale.Score5),mean(Scale.Score5,na.rm=TRUE),Scale.Score5))%>%
-  ungroup()
+    class=ifelse(is.na(ClaIDPre),ClaIDEnd,ClaIDPre),
+    ScaleScore5imp=ifelse(is.na(Scale.Score5),mean(Scale.Score5,na.rm=TRUE),Scale.Score5),
+    ScaleScore5miss=ifelse(is.na(Scale.Score5),1,0))
 
 
 ## ## drop the school that has no pretest scores
@@ -72,10 +87,47 @@ noPostTch=unique(dat1$TeaIDPre[dat1$SchIDPre==noPost])
 
 dat3=dat2%>%filter(!teach%in%noPostTch)
 
-dat4=dat3%>%filter(hasPretest)
 
-dat=filter(dat4,hasPosttest|hasStatetest)
+dat4=filter(dat3,hasPosttest|hasStatetest)
 
-attr(dat,'nRandomized') <- table(dat2$Z)
+dat=dat4%>%filter(hasPretest)
+
+dat=mutate(dat,
+           ScaleScore7 = Scale(Scale.Score7,Z),
+           postS=Scale(post.total_math_score,Z))
 
 save(dat,file='data/feedbackData.RData')
+
+#######################################
+## attrition analysis
+#######################################
+
+### analysis sample vs n randomized
+nRandomized=table(dat2$Z)
+att=rbind(
+  cbind(
+    post=1-sum(~hasPosttest|Z,data=dat)/nRandomized,
+    state=1-sum(~hasStatetest|Z,data=dat)/nRandomized,
+   bothtest=1-sum(~hasBothtest|Z,data=dat)/nRandomized),
+  all=1-sapply(select(dat,hasPosttest,hasStatetest,hasBothtest),sum)/sum(nRandomized))
+
+pdf('feedbackPaper/plots/wwcPlot.pdf')
+plotWWC(ov=att['all',],diff=apply(att,2,function(x) x['Immediate']-x['Delayed']),
+        labs=colnames(att),main="Attrition for Delayed vs Immediate Feedback")
+dev.off()
+
+
+### incl NA pretest in numerator
+### analysis sample vs n randomized
+attWPre=rbind(
+  cbind(
+    post=1-sum(~hasPosttest|Z,data=dat4)/nRandomized,
+    state=1-sum(~hasStatetest|Z,data=dat4)/nRandomized,
+   bothtest=1-sum(~hasBothtest|Z,data=dat4)/nRandomized),
+  all=1-sapply(select(dat4,hasPosttest,hasStatetest,hasBothtest),sum)/sum(nRandomized))
+
+
+pdf('feedbackPaper/plots/wwcPlotInclPre.pdf')
+plotWWC(ov=att['all',],diff=apply(att,2,function(x) x['Immediate']-x['Delayed']),
+        labs=colnames(att))
+dev.off()

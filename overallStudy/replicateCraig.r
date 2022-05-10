@@ -37,10 +37,10 @@ n_distinct(dat0$class)
 nrow(dat0)
 
 ###  "Students who were not enrolled in resource settings (n = 3972)"
-sum(!endsWith(dat0$Z,'Resource'))
+sum(!endsWith(as.character(dat0$Z),'Resource'))
 
 ### "Students enrolled in resource settings (n = 120)"
-sum(endsWith(dat0$Z,'Resource'))
+sum(endsWith(as.character(dat0$Z),'Resource'))
 
 ### drop the resource students
 dat1=filter(dat0,!endsWith(as.character(Z),'Resource'))
@@ -103,8 +103,8 @@ dat <- filter(dat3,hasPretest&hasPosttest)
 #################
 ## replicating HLMs
 ##################
-library(lmerTest)
-library(lme4)
+#library(lmerTest)
+#library(lme4)
 
 dat$post=dat$post.total_math_score
 dat$pre=dat$pre.total_math_score
@@ -128,19 +128,54 @@ mod3=update(mod2a,.~.+center(percomp))
 mod4a=update(mod2a,.~.+Z:center(pre))
 mod4=update(mod4a,.~.+center(percomp))
 
-htmlreg(list(mod1,mod2,mod3,mod4),file = "tableZZ4.html",ci.force = TRUE,
-        reorder.coef=c(1,4,3,2,5:14,17,16,15),digits=3)
+mainResults=list(mod1,mod2,mod3,mod4)
 
-list(mod1,mod2,mod3,mod4)%>%
+
+stargazer(mainResults,out = "tableZZ4.doc",ci = TRUE,single.row=TRUE,
+          type='html',
+          order=c(17,1,3,2,4,5:14,16,15),digits=3,star.cutoffs=c(.05,0.01,0.001))
+
+origResults <- mainResults%>%
   map(~update(.,subset=DROPSCH1==0))%>%
-  htmlreg(file="tableZZ4orig.html",ci.force=TRUE,single.row=TRUE,
-          reorder.coef=c(1,4,3,2,5:14,17,16,15),digits=3)
+  stargazer(out="tableZZ4orig.doc",ci=TRUE,single.row=TRUE,
+          type='html',order=c(17,1,3,2,4,5:14,16,15),digits=3,star.cutoffs=c(.05,0.01,0.001))
 
 ### table for in-person
-list(mod1,mod2,mod3,mod4)%>%
+mainResults%>%
   map(~update(.,subset=virtual==0))%>%
-  htmlreg(file="tableZZ4inPerson.html",ci.force=TRUE,single.row=TRUE,
-          reorder.coef=c(1,4,3,2,5:13,16,15,14),digits=3)
+  stargazer(out="tableZZ4inPerson.doc",ci=TRUE,single.row=TRUE,
+          type='html',order=c(16,1,3,2,4,5:13,15,14),digits=3,star.cutoffs=c(.05,0.01,0.001))
 
 
-htmlreg(list(mod1,mod2a,mod4a),file = "tableZZ4pretreat.html",ci.force = TRUE)
+
+################################################
+### what if we leave in missing pretests?
+################################################
+
+## Setting all missing
+## values for a baseline measure to a single value, and including an indicator
+## variable for records missing data on the measure in the impact estimation
+## model.
+
+datAlt <- filter(dat3,hasPosttest)%>%
+  mutate(
+    pre=pre.total_math_score,
+    preMissing=ifelse(is.na(pre),1,0),
+    pre=ifelse(is.na(pre),mean(pre,na.rm=TRUE),pre),
+    post=post.total_math_score,
+    accelerated=grepl('Accelerated',courseName),
+    race = raceEthnicityFed%>%
+      factor()%>%
+      fct_lump(n=2)%>%
+      fct_recode(Asian="3",White="6")%>%
+      fct_relevel("White"))
+
+datAlt$ncomp=rowSums(datAlt[,startsWith(names(datAlt),'complete_assignment')])
+datAlt$percomp=datAlt$ncomp/9
+
+
+c(update(mainResults[[1]],data=datAlt),
+  mainResults[-1]%>%
+  map(function(x) update(x,.~.+preMissing,data=datAlt)))%>%
+  stargazer(out="tableZZ4inclMissingPretst.doc",ci=TRUE,single.row=TRUE,
+          type='html',order=c(18,1,3,2,4,14,5:13,15,17,16),digits=3,star.cutoffs=c(.05,0.01,0.001))

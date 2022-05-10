@@ -1,4 +1,4 @@
-balPlot <- function(x,trtVar='Z',data){
+balPlot <- function(x,trtVar='Z',data,...){
     if(inherits(x,'formula')){
         ddd <- model.frame(x,data=data,na.action=na.pass)
         if(length(x)>2){
@@ -39,7 +39,7 @@ balPlot <- function(x,trtVar='Z',data){
         plots[[cc]] <- plots[[cc]]+    xlab(NULL)+ylab(NULL)+
             ggtitle(cc)+  theme(axis.text.x = element_text(angle = 45, hjust=1))
     }
-    grid.arrange(arrangeGrob(grobs=plots))
+    grid.arrange(arrangeGrob(grobs=plots),...)
 }
 
 
@@ -96,15 +96,15 @@ plotXbals <- function(bals){
 }
 
 
-plotWWC=function(ov,diff,labs,wwc){
+plotWWC=function(ov,diff,labs,wwc,...){
   if(missing(wwc)) wwc=read.csv("attritionReports/wwc.csv")
   names(wwc)[1] <- "Overall"
 
 
   with(wwc,
   plot(Overall,Differential1,type="l",ylim=c(0,11),
-       main="Midtest Including Pretest No-Shows",
-                  xlab="Overall Attrition", ylab="Differential Attrition"))
+       ...,
+       xlab="Overall Attrition", ylab="Differential Attrition"))
   polygon(c(0,0,65,65),c(0,11,11,0),col="red")
   polygon(c(0,wwc[[1]],65),c(0,wwc$Differential1,0),col="yellow")
   polygon(c(0,wwc[[1]]),c(0,wwc$Differential0),col="green")
