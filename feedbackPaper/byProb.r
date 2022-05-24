@@ -67,7 +67,9 @@ datLongPost <- dat%>%
 
 datLong <-
     dat%>%
-    select(student_number,initial_teacher_class,condition,ends_with("_imp"),ScaleScore_mis,race_mis,hasPretest,hasPosttest,pre.total_math_score)%>%
+    select(student_number,initial_teacher_class,condition,
+           ends_with("_imp"),ScaleScore_mis,race_mis,
+           starts_with('has'),pre.total_math_score)%>%
     right_join(datLongPre,by='student_number')%>%
     full_join(datLongMid,by=c('student_number','prob'))%>%
     full_join(datLongPost,by=c('student_number','prob'))
@@ -117,7 +119,7 @@ getEffsMLE<-function(mod){
 
 
 #### midtest
-mid0 <- glmer(mid~condition+pre+(1|student_number/initial_teacher_class)+(1|prob),data=datLong,family=binomial)
+mid0 <- glmer(mid~condition+pre+(1|student_number/initial_teacher_class)+(1|prob),data=datLong,subset=hasMidtest,family=binomial)
 mid1 <- update(mid0,.~.+ScaleScore_imp)
 mid2 <- update(mid1,.~.-(1|prob)+(pre|prob))
 mid3 <- update(mid2,.~.-(pre|prob)+(pre+condition|prob))
@@ -137,7 +139,7 @@ effsMid%>%
 ggsave('effectByProblemMid.jpg')
 
 #### posttest
-post0 <- glmer(post~condition+pre+(1|student_number/initial_teacher_class)+(1|prob),data=datLong,family=binomial)
+post0 <- glmer(post~condition+pre+(1|student_number/initial_teacher_class)+(1|prob),data=datLong,subset=hasPosttest,family=binomial)
 post1 <- update(post0,.~.+ScaleScore_imp)
 post2 <- update(post1,.~.-(1|prob)+(pre|prob))
 post3 <- update(post2,.~.-(pre|prob)+(pre+condition|prob))
@@ -164,41 +166,61 @@ ggsave('effectByProblemPost.jpg')
 sepModsMid <- datLong%>%
     nest(-prob)%>%
     mutate(
-        mod=map(data, ~glmer(mid~condition+pre+ScaleScore+(1|initial_teacher_class),data=.x,family=binomial)),
+        mod=map(data, ~glmer(mid~condition+pre+ScaleScore_imp+(1|initial_teacher_class),data=.x,family=binomial)),
         mod=map(mod,~tidy(.)%>%filter(term=='conditionInstant'))
     )%>%
     unnest(mod)
 
 save(sepModsMid,file='sepModsMid.RData')
 
+plot(sepModsMid$estimate,effsMid$effect,xlim=range(sepModsMid$estimate),ylim=range(sepModsMid$estimate))
+abline(0,1)
+abline(h=fixef(mid3)['conditionInstant'],lty=2)
 
 sepModsPost <- datLong%>%
     nest(-prob)%>%
     mutate(
-        mod=map(data, ~glmer(post~condition+pre+ScaleScore+(1|initial_teacher_class),data=.x,family=binomial)),
+        mod=map(data, ~glmer(post~condition+pre+ScaleScore_imp+(1|initial_teacher_class),data=.x,family=binomial)),
         mod=map(mod,~tidy(.)%>%filter(term=='conditionInstant'))
     )%>%
     unnest(mod)
 
 save(sepModsPost,file='sepModsPost.RData')
 
+plot(sepModsPost$estimate,effsPost$effect,xlim=range(sepModsPost$estimate),ylim=range(sepModsPost$estimate))
+abline(0,1)
+abline(h=fixef(post3)['conditionInstant'],lty=2)
+
+
 sepOLSmid <-  datLong%>%
     nest(-prob)%>%
     mutate(
-        mod=map(data, ~lm_robust(mid~condition+pre+ScaleScore,data=.x,fixed_effects=~initial_teacher_class)),
+        mod=map(data, ~lm_robust(mid~condition+pre+ScaleScore_imp,data=.x,fixed_effects=~initial_teacher_class)),
         mod=map(mod,~tidy(.)%>%filter(term=='conditionInstant'))
     )%>%
     unnest(mod)
 save(sepOLSmid,file='sepOLSmid.RData')
 
+plot(sepModsMid$estimate,sepOLSmid$estimate)
+mod=lm(sepOLSmid$estimate~sepModsMid$estimate)
+summary(mod)
+abline(mod)
+
 sepOLSpost <-  datLong%>%
     nest(-prob)%>%
     mutate(
-        mod=map(data, ~lm_robust(post~condition+pre+ScaleScore,data=.x,fixed_effects=~initial_teacher_class)),
+        mod=map(data, ~lm_robust(post~condition+pre+ScaleScore_imp,data=.x,fixed_effects=~initial_teacher_class)),
         mod=map(mod,~tidy(.)%>%filter(term=='conditionInstant'))
     )%>%
     unnest(mod)
 save(sepOLSpost,file='sepOLSpost.RData')
+
+plot(sepModsPost$estimate,sepOLSpost$estimate)
+mod=lm(sepOLSpost$estimate~sepModsPost$estimate)
+summary(mod)
+abline(mod)
+
+
 
 ########################################################################################
 ####### stan models
@@ -209,7 +231,7 @@ getEffsStan=function(mod){
     effsStan <- samp[,rep('conditionInstant',10)]+samp[,cnames]
     colnames(effsStan) <- str_extract(cnames,"\\d+")
 
-    apply(effsStan,2,function(x) c(effect=mean(x), seEff=sd(x),quantile(x,c(.025,.975))))%>%
+    apply(effsStan,2,function(x) c(effect=mean(x), seEff=sd(x),quantile(x,c(.025,.975)),PrGr0=mean(x>0)))%>%
         t()%>%
         as.data.frame()%>%
         rownames_to_column('item')    
@@ -219,6 +241,7 @@ getEffsStan=function(mod){
 stanMid <- stan_glmer(mid ~ condition + pre  + ScaleScore_imp +
                            (1 | student_number/initial_teacher_class) + (pre + condition | prob),
                    data=datLong,family=binomial(logit),subset=hasMidtest)
+stanMid$loo=loo(stanMid,cores=10)
 save(stanMid,file='stanMid.RData')
 
 getEffsStan(stanMid)%>%
@@ -233,7 +256,21 @@ stanMid2 <- stan_glmer(
     mid ~ condition+pre+ScaleScore_imp+EIP_imp+ESOL_imp+IEP_imp+FEMALE_imp+GIFTED_imp+race_imp+pre.total_math_score+
                         (1 | student_number/initial_teacher_class) + (pre + condition | prob),
                     data=datLong,family=binomial(logit),subset=hasMidtest)
+stanMid2$loo=loo(stanMid2,cores=10)
 save(stanMid2,file='stanMid2.RData')
+
+effsMidStan=getEffsStan(stanMid2)
+rng=range(c(sepModsMid$estimate,effsMidStan$effect))
+rng=rng+(rng[2]-rng[1])/20*c(-1,1)
+plot(sepModsMid$estimate,effsMidStan$effect,xlim=rng,ylim=rng)
+abline(0,1)
+
+rng=range(c(sepModsMid$std.error,effsMidStan$seEff))
+rng=rng+(rng[2]-rng[1])/20*c(-1,1)
+plot(sepModsMid$std.error,effsMidStan$seEff,xlim=rng,ylim=rng)
+abline(0,1)
+
+mid1vsmid2=loo_compare(stanMid,stanMid2)
 
 getEffsStan(stanMid2)%>%
     ggplot(aes(item, effect,ymin=effect-2*seEff,ymax=effect+2*seEff))+
@@ -248,6 +285,7 @@ ggsave('byProbMidtestStan2.jpg')
 stanPost <- stan_glmer(post ~ condition + pre  + ScaleScore_imp +
                            (1 | student_number/initial_teacher_class) + (pre + condition | prob),
                    data=datLong,family=binomial(logit),subset=hasPosttest)
+stanPost$loo <- loo(stanPost,cores=10)
 save(stanPost,file='stanPost.RData')
 
 getEffsStan(stanPost)%>%
@@ -262,7 +300,10 @@ stanPost2 <- stan_glmer(
     post ~ condition+pre+ScaleScore_imp+EIP_imp+ESOL_imp+IEP_imp+FEMALE_imp+GIFTED_imp+race_imp+pre.total_math_score+
                         (1 | student_number/initial_teacher_class) + (pre + condition | prob),
                     data=datLong,family=binomial(logit),subset=hasPosttest)
+stanPost2$loo=loo(stanPost2,cores=10)
 save(stanPost2,file='stanPost2.RData')
+
+loo_compare(stanPost,stanPost2)
 
 getEffsStan(stanPost2)%>%
     ggplot(aes(item, effect,ymin=effect-2*seEff,ymax=effect+2*seEff))+
@@ -272,6 +313,17 @@ getEffsStan(stanPost2)%>%
          subtitle="Estimated with Stan")
 ggsave('byProbPosttestStan2.jpg')
 
+effsPostStan=getEffsStan(stanPost2)
+
+rng=range(c(sepModsPost$estimate,effsPostStan$effect))
+rng=rng+(rng[2]-rng[1])/20*c(-1,1)
+plot(sepModsPost$estimate,effsPostStan$effect,xlim=rng,ylim=rng)
+abline(0,1)
+
+rng=range(c(sepModsPost$std.error,effsPostStan$seEff))
+rng=rng+(rng[2]-rng[1])/20*c(-1,1)
+plot(sepModsPost$std.error,effsPostStan$seEff,xlim=rng,ylim=rng)
+abline(0,1)
 
 
 
